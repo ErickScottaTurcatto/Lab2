@@ -22,6 +22,7 @@ typedef struct {
     bool fim_onda;
     int arma_atual;
     int inimigo_inativos;
+    int inimigos_vivos;
     int onda;
     
 } Dados_jogo;
@@ -39,6 +40,8 @@ char inimigos_random();
 void inicia_mapa (char *mapa);
 void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo);
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo);
+void troca_arma(Dados_jogo *dadosjogo);
+void atira(Dados_jogo *dadosjogo, char *mapa);
 
 int main()
 {
@@ -110,11 +113,13 @@ void inicializacao (Dados_jogo *dados)
     dados->inimigo_inativos = 20;
     dados->onda = 0;
     dados->fim_onda = false;
+    dados->inimigos_vivos = 20;
 }
 
 void joga_partida (Dados_jogo *dadosjogo)  // quando que é o fim da partida? quando o jogador morrer/ ele quitar
 {
     while (!dadosjogo->fim_partida) {
+        dadosjogo->inimigos_vivos = 20;
         dadosjogo->inimigo_inativos = 20;
         dadosjogo->municao = 30;
         joga_onda(dadosjogo);
@@ -135,13 +140,15 @@ void joga_onda (Dados_jogo *dadosjogo)
             dadosjogo->encerrar = true;
         }
         
+        troca_arma(dadosjogo); // correção de bug, não esta sendo estantaneo a troca de arma
+        atira(dadosjogo, mapa);
         
 
         if (crono_parcial(&c_inimigos) >= 2.0) {
             atualiza_mapa(mapa, dadosjogo);
             desenha_jogo(mapa, dadosjogo);
-        crono_inicia(&c_inimigos);  // reinicia a contagem do zero
-    }
+            crono_inicia(&c_inimigos);  // reinicia a contagem do zero
+        }
     }
 }
 
@@ -200,4 +207,34 @@ void desenha_jogo(char *mapa, Dados_jogo *dadosjogo)
         printf("%c", mapa[i]);
     }
     printf("\r");
+}
+
+void troca_arma(Dados_jogo *dadosjogo)
+{
+    if (lechar() == 103) {
+        if(dadosjogo->arma_atual == 10){
+            dadosjogo->arma_atual = 0;
+        } else{
+            dadosjogo->arma_atual++;
+        }
+    }
+}
+
+void atira(Dados_jogo *dadosjogo, char *mapa)
+{
+    if (lechar() == 10) {
+        for(int i = 0; i < 13; i++) {
+            if(mapa[i] == 'N' && dadosjogo->arma_atual == 10) { //arrumar o codigo do enter
+                mapa[i] = 'n';
+            }
+            else if(mapa[i] == 'n' && dadosjogo->arma_atual == 10) {
+                mapa[i] = ' ';
+                dadosjogo->inimigos_vivos--;
+            }
+            else if(mapa[i] == dadosjogo->arma_atual + '0') {
+                mapa[i] = ' ';
+                dadosjogo->inimigos_vivos--;
+            }
+        }
+    }
 }
