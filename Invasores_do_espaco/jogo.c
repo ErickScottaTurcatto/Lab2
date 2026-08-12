@@ -135,12 +135,13 @@ void inicializacao (Dados_jogo *dados)
     dados->gameover = false;
 }
 
-void joga_partida (Dados_jogo *dadosjogo)  // quando que é o fim da partida? quando o jogador morrer/ ele quitar
+void joga_partida (Dados_jogo *dadosjogo)  
 {
     while (!dadosjogo->fim_partida) {
         dadosjogo->inimigos_vivos = 20;
         dadosjogo->inimigo_inativos = 20;
         dadosjogo->municao = 30;
+        dadosjogo->escudos = 3;
         dadosjogo->onda++;
         if (dadosjogo->onda != 1)
             dadosjogo->tempo = dadosjogo->tempo - (dadosjogo->tempo*0.1);
@@ -155,11 +156,13 @@ void gameover(Dados_jogo *dadosjogo)
     bool exit = false;
     while (!exit) {
         int tecla = lechar();
-        printf("GAME OVER Pontuacao: %d  Onda: %d\r", dadosjogo->pontuacao, dadosjogo->onda); //arrunar essa função, a onda e pontuação esta somando quando clico no r
+        printf("GAME OVER Pontuacao: %d  Onda: %d\r", dadosjogo->pontuacao, dadosjogo->onda); //bug dapontuação
         //printf(" Digite 'esc' para sair ou 'r' para comecar outra partida\r");
         sair(dadosjogo, tecla);
         newonda(dadosjogo, tecla);
         if (tecla == 'r' || tecla == 27 ) {
+            dadosjogo->pontuacao = 0;
+            dadosjogo->onda = 0;
             printf("\n");
             exit = true;
         }     
