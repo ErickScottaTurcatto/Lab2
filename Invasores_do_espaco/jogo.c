@@ -20,11 +20,13 @@ typedef struct {
     bool encerrar;
     bool fim_partida;
     bool fim_onda;
+    bool proxima_onda;
     int arma_atual;
     int inimigo_inativos;
     int inimigos_vivos;
     int onda;
-    
+    int escudos;
+    double tempo;
 } Dados_jogo;
 
 typedef struct timespec crono;
@@ -42,6 +44,9 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo);
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo);
 void troca_arma(Dados_jogo *dadosjogo, int tecla);
 void atira(Dados_jogo *dadosjogo, char *mapa, int tecla);
+void sair(Dados_jogo *dadosjogo, int tecla);
+void newonda(Dados_jogo *dadosjogo, int tecla);
+void proxima_onda(Dados_jogo *dadosjogo);
 
 int main()
 {
@@ -116,6 +121,9 @@ void inicializacao (Dados_jogo *dados)
     dados->onda = 0;
     dados->fim_onda = false;
     dados->inimigos_vivos = 20;
+    dados->escudos = 3;
+    dados->tempo = 2.0;
+    dados->proxima_onda = false;
 }
 
 void joga_partida (Dados_jogo *dadosjogo)  // quando que é o fim da partida? quando o jogador morrer/ ele quitar
@@ -124,13 +132,18 @@ void joga_partida (Dados_jogo *dadosjogo)  // quando que é o fim da partida? qu
         dadosjogo->inimigos_vivos = 20;
         dadosjogo->inimigo_inativos = 20;
         dadosjogo->municao = 30;
+        dadosjogo->onda++;
+        if (dadosjogo->tempo != 2.0)
+            dadosjogo->tempo = dadosjogo->tempo - (dadosjogo->tempo*0.1);
         joga_onda(dadosjogo);
+        proxima_onda(dadosjogo);//ao clicar esc esta caindo aqui, tratar isso
     }
 }
 
 void joga_onda (Dados_jogo *dadosjogo)
 {
     char mapa[13];
+
     inicia_mapa(mapa, dadosjogo);
     desenha_jogo(mapa, dadosjogo);
     crono c_inimigos;
@@ -138,28 +151,23 @@ void joga_onda (Dados_jogo *dadosjogo)
     while (!dadosjogo->fim_onda) {
         int tecla = lechar();
 
-        if (dadosjogo->inimigos_vivos <= 0) { //mudar isso escrito so por exemplo
+        if (dadosjogo->inimigos_vivos <= 0)
             dadosjogo->fim_onda = true;
-            dadosjogo->fim_partida = true;
-            dadosjogo->encerrar = true;
-        }
-        if (tecla == 27) {
-            dadosjogo->fim_onda = true;
-            dadosjogo->fim_partida = true;
-            dadosjogo->encerrar = true;
-        }
-        
-        troca_arma(dadosjogo, tecla); // correção de bug, não esta sendo estantaneo a troca de arma
+    
+        sair(dadosjogo, tecla);
+        troca_arma(dadosjogo, tecla); // correção de bug, não esta sendo estantaneo  a troca de arma
         atira(dadosjogo, mapa, tecla);
         desenha_jogo(mapa, dadosjogo);
         
 
-        if (crono_parcial(&c_inimigos) >= 2.0) {
+        if (crono_parcial(&c_inimigos) >= dadosjogo->tempo) {
             atualiza_mapa(mapa, dadosjogo);
-            //desenha_jogo(mapa, dadosjogo);
             crono_inicia(&c_inimigos);  // reinicia a contagem do zero
         }
     }
+
+    dadosjogo->pontuacao += dadosjogo->municao*2; // soma na pontuação
+    dadosjogo->pontuacao += dadosjogo->escudos*10;
 }
 
 char inimigos_random()
@@ -203,12 +211,14 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo) //da para simplificar ess
             } else {
                 mapa[i] = ' ';
             }
-        } else if (mapa[i] == ' ' && mapa[i -1] != ')' && i != 0) {
+        } else if (i != 0 && mapa[i] == ' ' && mapa[i -1] != ')') {
             mapa[i-1] = ' ';
         }  else if (mapa[i] == 'N' && mapa[i - 1] == ')') {
             mapa[i - 1] = 'n';
+            dadosjogo->escudos--;
         } else if (mapa[i] != ')' && mapa[i] != ' ' && mapa[i-1] == ')') {
             mapa[i - 1] = ' ';
+            dadosjogo->escudos--;
         } else if (mapa[i] != ' ' && mapa[i] != ')' && mapa[i-1] != ')') {
             mapa[i-1] =  mapa[i];
         }
@@ -219,11 +229,12 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo) //da para simplificar ess
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo)
 {
     printf("  %d %d %c", dadosjogo->pontuacao, dadosjogo->municao, dadosjogo->arma_atual == 10 ? 'n' : dadosjogo->arma_atual + '0');
+    fflush(stdout);
     for(int i = 0; i < 13; i++){
         printf("%c", mapa[i]);
     }
     printf("\r");
-    //fflush(stdout); //limpa o buffer de saida, para que o printf seja executado imediatamente
+    fflush(stdout); //limpa o buffer de saida, para que o printf seja executado imediatamente
 }
 
 void troca_arma(Dados_jogo *dadosjogo, int tecla)
@@ -239,7 +250,8 @@ void troca_arma(Dados_jogo *dadosjogo, int tecla)
 
 void atira(Dados_jogo *dadosjogo, char *mapa, int tecla)
 {
-    if (tecla == 13) {
+    //int pontos = 0;
+    if (tecla == 13 && dadosjogo->municao > 0) {
         for(int i = 0; i < 13; i++) {
             if(mapa[i] == 'N' && dadosjogo->arma_atual == 10) { 
                 mapa[i] = 'n';
@@ -247,14 +259,96 @@ void atira(Dados_jogo *dadosjogo, char *mapa, int tecla)
             }
             else if(mapa[i] == 'n' && dadosjogo->arma_atual == 10) {
                 mapa[i] = ' ';
+
+                if (dadosjogo->estados == dia) {
+                    dadosjogo->pontuacao += (13-i)*2;
+                } else{
+                    dadosjogo->pontuacao += (13-i)*4;
+                }
+
                 dadosjogo->inimigos_vivos--;
+                
                 break;
             }
             else if(mapa[i] == dadosjogo->arma_atual + '0') {
                 mapa[i] = ' ';
+                if (dadosjogo->estados == dia) {
+                    dadosjogo->pontuacao += (13-i);
+                } else{
+                    dadosjogo->pontuacao += (13-i)*2;
+                }
                 dadosjogo->inimigos_vivos--;
                 break;
             }
         }
+        dadosjogo->municao--;
+    }
+}
+
+
+void sair(Dados_jogo *dadosjogo, int tecla)
+{
+    if (tecla == 27) {
+        dadosjogo->fim_onda = true;
+        dadosjogo->fim_partida = true;
+        dadosjogo->encerrar = true;
+    }
+}
+
+void newonda(Dados_jogo *dadosjogo, int tecla)
+{
+    if (tecla == 'r') {
+        dadosjogo->proxima_onda = true;
+        dadosjogo->fim_partida = false;
+        dadosjogo->fim_onda = false;
+    }
+}
+/*
+implementar depois
+void probabilidade_estado(Dados_jogo *dadosjogo)
+{
+    int chance_dia;
+
+    switch (dadosjogo->onda)
+    {
+    case 1:
+        chance_dia = 100;
+        break;
+    case 2:
+        chance_dia = 80;
+        break;
+    case 3:
+        chance_dia = 60;
+        break;
+    case 4:
+        chance_dia = 40;
+        break;
+    default:
+        chance_dia = 20;
+        break;
+    }
+
+    int sorteio = rand() % 100;
+
+    if (sorteio < chance_dia) {
+        dadosjogo->estados = dia;
+    } else {
+        dadosjogo->estados = noite;
+    }
+}
+*/
+
+void proxima_onda(Dados_jogo *dadosjogo)
+{
+    bool exit = false;
+    while (!exit) {
+        int tecla = lechar();
+        printf("  Tempo: %d Onda: %d Pontuacao: %d  -- Digite 'r' para jogar a proxima onda ou 'esc' para sair\r", dadosjogo->tempo, dadosjogo->onda, dadosjogo->pontuacao);
+        sair(dadosjogo, tecla);
+        newonda(dadosjogo, tecla);
+        if (tecla == 'r' || tecla == 27 ) {
+            printf("\n");
+            exit = true;
+        }     
     }
 }
