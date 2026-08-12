@@ -21,6 +21,8 @@ typedef struct {
     bool fim_partida;
     bool fim_onda;
     bool proxima_onda;
+    bool saida_esc;
+    bool gameover;
     int arma_atual;
     int inimigo_inativos;
     int inimigos_vivos;
@@ -47,6 +49,9 @@ void atira(Dados_jogo *dadosjogo, char *mapa, int tecla);
 void sair(Dados_jogo *dadosjogo, int tecla);
 void newonda(Dados_jogo *dadosjogo, int tecla);
 void proxima_onda(Dados_jogo *dadosjogo);
+void pontuacao_mortes(Dados_jogo *dadosjogo, int indice, bool n); 
+void pontuacao_itens(Dados_jogo *dadosjogo);
+void gameover(Dados_jogo *dadosjogo);
 
 int main()
 {
@@ -58,6 +63,8 @@ int main()
     
     while (!(dadosjogo.encerrar)) {
         joga_partida(&dadosjogo);
+        if (dadosjogo.gameover)
+            gameover(&dadosjogo);
     }
 
     
@@ -124,6 +131,8 @@ void inicializacao (Dados_jogo *dados)
     dados->escudos = 3;
     dados->tempo = 2.0;
     dados->proxima_onda = false;
+    dados->saida_esc = false;
+    dados->gameover = false;
 }
 
 void joga_partida (Dados_jogo *dadosjogo)  // quando que é o fim da partida? quando o jogador morrer/ ele quitar
@@ -133,40 +142,56 @@ void joga_partida (Dados_jogo *dadosjogo)  // quando que é o fim da partida? qu
         dadosjogo->inimigo_inativos = 20;
         dadosjogo->municao = 30;
         dadosjogo->onda++;
-        if (dadosjogo->tempo != 2.0)
+        if (dadosjogo->onda != 1)
             dadosjogo->tempo = dadosjogo->tempo - (dadosjogo->tempo*0.1);
         joga_onda(dadosjogo);
-        proxima_onda(dadosjogo);//ao clicar esc esta caindo aqui, tratar isso
+        if (dadosjogo->saida_esc == false && dadosjogo->gameover == false)
+            proxima_onda(dadosjogo);
+    }
+}
+
+void gameover(Dados_jogo *dadosjogo)
+{
+    bool exit = false;
+    while (!exit) {
+        int tecla = lechar();
+        printf("GAME OVER Pontuacao: %d  Onda: %d\r", dadosjogo->pontuacao, dadosjogo->onda); //arrunar essa função, a onda e pontuação esta somando quando clico no r
+        //printf(" Digite 'esc' para sair ou 'r' para comecar outra partida\r");
+        sair(dadosjogo, tecla);
+        newonda(dadosjogo, tecla);
+        if (tecla == 'r' || tecla == 27 ) {
+            printf("\n");
+            exit = true;
+        }     
     }
 }
 
 void joga_onda (Dados_jogo *dadosjogo)
 {
     char mapa[13];
-
     inicia_mapa(mapa, dadosjogo);
-    desenha_jogo(mapa, dadosjogo);
     crono c_inimigos;
     crono_inicia(&c_inimigos);
     while (!dadosjogo->fim_onda) {
         int tecla = lechar();
-
-        if (dadosjogo->inimigos_vivos <= 0)
-            dadosjogo->fim_onda = true;
-    
         sair(dadosjogo, tecla);
         troca_arma(dadosjogo, tecla); // correção de bug, não esta sendo estantaneo  a troca de arma
         atira(dadosjogo, mapa, tecla);
-        desenha_jogo(mapa, dadosjogo);
-        
-
+        if (dadosjogo->inimigos_vivos <= 0)
+            dadosjogo->fim_onda = true;
         if (crono_parcial(&c_inimigos) >= dadosjogo->tempo) {
             atualiza_mapa(mapa, dadosjogo);
             crono_inicia(&c_inimigos);  // reinicia a contagem do zero
         }
+        desenha_jogo(mapa, dadosjogo);
     }
+    if (dadosjogo->saida_esc == false)
+        pontuacao_itens(dadosjogo);
+}
 
-    dadosjogo->pontuacao += dadosjogo->municao*2; // soma na pontuação
+void pontuacao_itens(Dados_jogo *dadosjogo)
+{
+    dadosjogo->pontuacao += dadosjogo->municao*2; 
     dadosjogo->pontuacao += dadosjogo->escudos*10;
 }
 
@@ -189,41 +214,36 @@ void inicia_mapa (char *mapa, Dados_jogo *dadosjogo)
         } else if (i != 12) {
             mapa[i] = ' ';
         } else {
-            mapa[i] = inimigos_random();// criar essa função
+            mapa[i] = inimigos_random();
             dadosjogo->inimigo_inativos--;
         }
     }
 }
 
-void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo) //da para simplificar essas condições
+void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo) 
 {
     for (int i = 0; i < 13; i++) {
-        if (i == 0 && (mapa[i] != ')' && mapa[i] != ' ')) {
-            dadosjogo->fim_onda = true;
-            dadosjogo->fim_partida = true;
-            dadosjogo->encerrar = true; //talvez tirar essa linha futuramente
-            break;
-        } else if (i == 12) {
-            mapa[i-1] = mapa[i];
-            if(dadosjogo->inimigo_inativos > 0){
-                mapa[i] = inimigos_random();
-                dadosjogo->inimigo_inativos--;
+        if (mapa[i] != ')' && mapa[i] != ' ') {
+            if(i == 0) {
+                dadosjogo->fim_onda = true;
+                dadosjogo->fim_partida = true;
+                dadosjogo->gameover = true;
+            } else if(mapa[i-1] == ')') {
+                mapa[i-1] = (mapa[i] == 'N') ? 'n' : ' ';
+                if (mapa[i] != 'N')
+                    dadosjogo->inimigos_vivos--;
+                mapa[i] = ' ';
+                dadosjogo->escudos--;
             } else {
+                mapa[i-1] = mapa[i];
                 mapa[i] = ' ';
             }
-        } else if (i != 0 && mapa[i] == ' ' && mapa[i -1] != ')') {
-            mapa[i-1] = ' ';
-        }  else if (mapa[i] == 'N' && mapa[i - 1] == ')') {
-            mapa[i - 1] = 'n';
-            dadosjogo->escudos--;
-        } else if (mapa[i] != ')' && mapa[i] != ' ' && mapa[i-1] == ')') {
-            mapa[i - 1] = ' ';
-            dadosjogo->escudos--;
-        } else if (mapa[i] != ' ' && mapa[i] != ')' && mapa[i-1] != ')') {
-            mapa[i-1] =  mapa[i];
         }
-
     }
+    if(dadosjogo->inimigo_inativos > 0) {
+        mapa[12] = inimigos_random(); 
+        dadosjogo->inimigo_inativos--; 
+    }    
 }
 
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo)
@@ -248,40 +268,40 @@ void troca_arma(Dados_jogo *dadosjogo, int tecla)
     }
 }
 
-void atira(Dados_jogo *dadosjogo, char *mapa, int tecla)
+void atira(Dados_jogo *dadosjogo, char *mapa, int tecla) //não da para adds mais nada ta com 21 já
 {
-    //int pontos = 0;
     if (tecla == 13 && dadosjogo->municao > 0) {
         for(int i = 0; i < 13; i++) {
-            if(mapa[i] == 'N' && dadosjogo->arma_atual == 10) { 
-                mapa[i] = 'n';
-                break;
-            }
-            else if(mapa[i] == 'n' && dadosjogo->arma_atual == 10) {
-                mapa[i] = ' ';
-
-                if (dadosjogo->estados == dia) {
-                    dadosjogo->pontuacao += (13-i)*2;
-                } else{
-                    dadosjogo->pontuacao += (13-i)*4;
+            if ((mapa[i] == 'N' || mapa[i] == 'n') && dadosjogo->arma_atual == 10) {
+                mapa[i] = (mapa[i] == 'N') ? 'n' : ' ';
+                if (mapa[i] == ' ') {
+                    pontuacao_mortes(dadosjogo, i, true);
+                    dadosjogo->inimigos_vivos--;   
                 }
-
-                dadosjogo->inimigos_vivos--;
-                
                 break;
-            }
-            else if(mapa[i] == dadosjogo->arma_atual + '0') {
+            } else if (mapa[i] == dadosjogo->arma_atual + '0') {
                 mapa[i] = ' ';
-                if (dadosjogo->estados == dia) {
-                    dadosjogo->pontuacao += (13-i);
-                } else{
-                    dadosjogo->pontuacao += (13-i)*2;
-                }
+                pontuacao_mortes(dadosjogo, i, false);
                 dadosjogo->inimigos_vivos--;
                 break;
             }
         }
         dadosjogo->municao--;
+    }
+}
+
+void pontuacao_mortes(Dados_jogo *dadosjogo, int indice, bool n) 
+{
+    if (n) {
+        if (dadosjogo->estados == dia)
+            dadosjogo->pontuacao += (13-indice)*2;
+        else    
+            dadosjogo->pontuacao += (13-indice)*4; 
+    } else {
+        if (dadosjogo->estados == dia)
+            dadosjogo->pontuacao += (13-indice);
+        else    
+            dadosjogo->pontuacao += (13-indice)*2; 
     }
 }
 
@@ -292,6 +312,7 @@ void sair(Dados_jogo *dadosjogo, int tecla)
         dadosjogo->fim_onda = true;
         dadosjogo->fim_partida = true;
         dadosjogo->encerrar = true;
+        dadosjogo->saida_esc = true;
     }
 }
 
@@ -343,7 +364,7 @@ void proxima_onda(Dados_jogo *dadosjogo)
     bool exit = false;
     while (!exit) {
         int tecla = lechar();
-        printf("  Tempo: %d Onda: %d Pontuacao: %d  -- Digite 'r' para jogar a proxima onda ou 'esc' para sair\r", dadosjogo->tempo, dadosjogo->onda, dadosjogo->pontuacao);
+        printf("  Tempo: %f Onda: %d Pontuacao: %d  -- Digite 'r' para jogar a proxima onda ou 'esc' para sair\r", dadosjogo->tempo, dadosjogo->onda, dadosjogo->pontuacao);
         sair(dadosjogo, tecla);
         newonda(dadosjogo, tecla);
         if (tecla == 'r' || tecla == 27 ) {
