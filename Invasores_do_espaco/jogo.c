@@ -187,7 +187,13 @@ void gameover(Dados_jogo *dadosjogo)
         //printf(" Digite 'esc' para sair ou 'r' para comecar outra partida\r");
         sair(dadosjogo, tecla);
         newonda(dadosjogo, tecla);
-        if (tecla == 'r' || tecla == 27 ) {
+        if (tecla == 'r') {
+            dadosjogo->pontuacao = 0;
+            dadosjogo->onda = 0;
+            dadosjogo->gameover = false;
+            printf("\n");
+            exit = true;
+        } else if (tecla == 27){
             dadosjogo->pontuacao = 0;
             dadosjogo->onda = 0;
             printf("\n");
@@ -291,7 +297,7 @@ void desenha_jogo(char *mapa, Dados_jogo *dadosjogo)
     int n = (dadosjogo->estados == dia) ? 13 : 8;
     printf("  %d %d %c", dadosjogo->pontuacao, dadosjogo->municao, dadosjogo->arma_atual == 10 ? 'n' : dadosjogo->arma_atual + '0');
     fflush(stdout);
-    if (dadosjogo->estados == dia) {
+    if (1/*dadosjogo->estados == dia*/) { //linha comentada para ver o que acontece no modo noturno 
         for(int i = 0; i < n; i++)
             printf("%c", mapa[i]);
     }
@@ -442,7 +448,18 @@ void proxima_onda(Dados_jogo *dadosjogo)
     bool exit = false;
     while (!exit) {
         int tecla = lechar();
-        printf("  Tempo: %f Onda: %d Pontuacao: %d  -- Digite 'r' para jogar a proxima onda ou 'esc' para sair\r", dadosjogo->tempo, dadosjogo->onda, dadosjogo->pontuacao);
+
+        //criado para depuração
+        double tempoonda;
+        if (dadosjogo->estados == dia) {
+            tempoonda = dadosjogo->tempo;
+        }
+        else {
+            tempoonda = dadosjogo->tempo_noturno;
+        }
+
+
+        printf("  Tempo: %f Onda: %d Pontuacao: %d  -- Digite 'r' para jogar a proxima onda ou 'esc' para sair\r", tempoonda, dadosjogo->onda, dadosjogo->pontuacao); //tirar tempo onda
         sair(dadosjogo, tecla);
         newonda(dadosjogo, tecla);
         if (tecla == 'r' || tecla == 27 ) {
