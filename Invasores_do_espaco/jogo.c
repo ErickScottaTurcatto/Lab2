@@ -5,11 +5,6 @@
 #include <time.h>
 #include <unistd.h>
 
-//#define armas_dia[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'n'};
-//#define armas_noite[] = {'0', '2', '4', '6', '8', 'n'};
-
-//troca de armas pode ser feita usando o codigo ascii 
-
 typedef struct {
     enum {
         dia,
@@ -30,6 +25,7 @@ typedef struct {
     int onda;
     int escudos;
     double tempo;
+    double tempo_noturno;
 } Dados_jogo;
 
 typedef struct timespec crono;
@@ -41,7 +37,7 @@ double crono_parcial(crono *c);
 void inicializacao (Dados_jogo *dados);
 void joga_partida (Dados_jogo *dadosjogo);
 void joga_onda (Dados_jogo *dadosjogo);
-char inimigos_random();
+char inimigos_random(Dados_jogo *dadosjogo);
 void inicia_mapa (char *mapa, Dados_jogo *dadosjogo);
 void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo);
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo);
@@ -55,11 +51,13 @@ void pontuacao_itens(Dados_jogo *dadosjogo);
 void gameover(Dados_jogo *dadosjogo);
 void som_de_spawn(char *mapa, int i);
 void som_trocaarma(Dados_jogo *dadosjogo);
-void radar(char *mapa, int tecla);
+void radar(Dados_jogo *dadosjogo, char *mapa, int tecla);
 void som_fim_onda(Dados_jogo *dadosjogo);
 void inicializa_arquivo();
 void atualiza_scores(int *scores, bool newrecord);
 void verifica_pontuacao(Dados_jogo *dadosjogo);
+void inicializacoes_partida (Dados_jogo *dadosjogo);
+void probabilidade_estado(Dados_jogo *dadosjogo);
 
 int main()
 {
@@ -149,17 +147,35 @@ void inicializacao (Dados_jogo *dados)
 void joga_partida (Dados_jogo *dadosjogo)  
 {
     while (!dadosjogo->fim_partida) {
-        dadosjogo->inimigos_vivos = 20;
-        dadosjogo->inimigo_inativos = 20;
-        dadosjogo->municao = 30;
-        dadosjogo->escudos = 3;
         dadosjogo->onda++;
+        probabilidade_estado(dadosjogo);
+        inicializacoes_partida (dadosjogo);
         if (dadosjogo->onda != 1)
-            dadosjogo->tempo = dadosjogo->tempo - (dadosjogo->tempo*0.1);
+            if (dadosjogo->estados == dia)
+                dadosjogo->tempo =  dadosjogo->tempo - (dadosjogo->tempo*0.1);
+            else
+                dadosjogo->tempo_noturno = 3 * (dadosjogo->tempo - (dadosjogo->tempo*0.1));
         joga_onda(dadosjogo);
         if (dadosjogo->saida_esc == false && dadosjogo->gameover == false)
             proxima_onda(dadosjogo);
     }
+}
+
+void inicializacoes_partida (Dados_jogo *dadosjogo) 
+{
+    if (dadosjogo->estados == dia) {
+        dadosjogo->inimigos_vivos = 20;
+        dadosjogo->inimigo_inativos = 20;
+        dadosjogo->municao = 30;
+    }
+    else {
+        dadosjogo->inimigos_vivos = 15;
+        dadosjogo->inimigo_inativos = 15;
+        dadosjogo->municao = 30;
+        if (dadosjogo->arma_atual%2 == 1)
+            dadosjogo->arma_atual++;
+    }
+    dadosjogo->escudos = 3;
 }
 
 void gameover(Dados_jogo *dadosjogo)
@@ -189,13 +205,14 @@ void joga_onda (Dados_jogo *dadosjogo)
     while (!dadosjogo->fim_onda) {
         int tecla = lechar();
         sair(dadosjogo, tecla);
-        radar(mapa,tecla); 
+        radar(dadosjogo, mapa,tecla); 
         troca_arma(dadosjogo, tecla); // correção de bug, não esta sendo estantaneo  a troca de arma
         atira(dadosjogo, mapa, tecla);
         if (dadosjogo->inimigos_vivos <= 0){
             dadosjogo->fim_onda = true;
         }
-        if (crono_parcial(&c_inimigos) >= dadosjogo->tempo) {
+        double tempodefinido = (dadosjogo->estados == dia) ? dadosjogo->tempo : dadosjogo->tempo_noturno;
+        if (crono_parcial(&c_inimigos) >= tempodefinido) {
             atualiza_mapa(mapa, dadosjogo);
             crono_inicia(&c_inimigos);  // reinicia a contagem do zero
         }
@@ -212,9 +229,15 @@ void pontuacao_itens(Dados_jogo *dadosjogo)
     dadosjogo->pontuacao += dadosjogo->escudos*10;
 }
 
-char inimigos_random()
+char inimigos_random(Dados_jogo *dadosjogo)
 {
     int numero = rand() % 11;
+
+    if (dadosjogo->estados == noite) {
+        if (numero%2 == 1) {
+            numero++;
+        }
+    }
 
     if (numero == 10) {
         return 'N';
@@ -225,7 +248,8 @@ char inimigos_random()
 
 void inicia_mapa (char *mapa, Dados_jogo *dadosjogo)
 {
-    for (int i = 0; i < 13; i++) {
+    int n = (dadosjogo->estados == dia) ? 13 : 8;
+    for (int i = 0; i < n; i++) {
         if (i < 3) {
             mapa[i] = ')';
         } else {
@@ -236,7 +260,8 @@ void inicia_mapa (char *mapa, Dados_jogo *dadosjogo)
 
 void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo) 
 {
-    for (int i = 0; i < 13; i++) {
+    int n = (dadosjogo->estados == dia) ? 13 : 8;
+    for (int i = 0; i < n; i++) {
         if (mapa[i] != ')' && mapa[i] != ' ') {
             if(i == 0) {
                 dadosjogo->fim_onda = true;
@@ -255,21 +280,22 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo)
         }
     }
     if(dadosjogo->inimigo_inativos > 0) {
-        mapa[12] = inimigos_random(); 
-        som_de_spawn(mapa, 12);
+        mapa[n-1] = inimigos_random(dadosjogo); 
+        som_de_spawn(mapa, n-1);
         dadosjogo->inimigo_inativos--; 
     }    
 }
 
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo)
 {
+    int n = (dadosjogo->estados == dia) ? 13 : 8;
     printf("  %d %d %c", dadosjogo->pontuacao, dadosjogo->municao, dadosjogo->arma_atual == 10 ? 'n' : dadosjogo->arma_atual + '0');
     fflush(stdout);
-    for(int i = 0; i < 13; i++){
-        //som_de_spawn(mapa, i);
-        printf("%c", mapa[i]);
-        
+    if (dadosjogo->estados == dia) {
+        for(int i = 0; i < n; i++)
+            printf("%c", mapa[i]);
     }
+    
     printf("\r");
     fflush(stdout); //limpa o buffer de saida, para que o printf seja executado imediatamente
 }
@@ -290,11 +316,20 @@ void som_de_spawn(char *mapa, int i)
 void troca_arma(Dados_jogo *dadosjogo, int tecla)
 {
     if (tecla == 9) {
-        if(dadosjogo->arma_atual == 10){
-            dadosjogo->arma_atual = 0;
-        } else{
-            dadosjogo->arma_atual++;
+        if (dadosjogo->estados == noite) {
+            if(dadosjogo->arma_atual == 10)
+                dadosjogo->arma_atual = 0;
+            else
+                dadosjogo->arma_atual+=2;
         }
+        else {
+            if(dadosjogo->arma_atual == 10){
+                dadosjogo->arma_atual = 0;
+            } else{
+                dadosjogo->arma_atual++;
+            }
+        }
+        
         som_trocaarma(dadosjogo);
     }
 }
@@ -313,8 +348,9 @@ void som_trocaarma(Dados_jogo *dadosjogo)
 
 void atira(Dados_jogo *dadosjogo, char *mapa, int tecla) //não da para adds mais nada ta com 21 já
 {
+    int n = (dadosjogo->estados == dia) ? 13 : 8;
     if (tecla == 13 && dadosjogo->municao > 0) {
-        for(int i = 0; i < 13; i++) {
+        for(int i = 0; i < n; i++) {
             if ((mapa[i] == 'N' || mapa[i] == 'n') && dadosjogo->arma_atual == 10) {
                 mapa[i] = (mapa[i] == 'N') ? 'n' : ' ';
                 if (mapa[i] == ' ') {
@@ -339,12 +375,12 @@ void pontuacao_mortes(Dados_jogo *dadosjogo, int indice, bool n)
         if (dadosjogo->estados == dia)
             dadosjogo->pontuacao += (13-indice)*2;
         else    
-            dadosjogo->pontuacao += (13-indice)*4; 
+            dadosjogo->pontuacao += (8-indice)*4; 
     } else {
         if (dadosjogo->estados == dia)
             dadosjogo->pontuacao += (13-indice);
         else    
-            dadosjogo->pontuacao += (13-indice)*2; 
+            dadosjogo->pontuacao += (8-indice)*2; 
     }
 }
 
@@ -367,8 +403,7 @@ void newonda(Dados_jogo *dadosjogo, int tecla)
         dadosjogo->fim_onda = false;
     }
 }
-/*
-implementar depois
+
 void probabilidade_estado(Dados_jogo *dadosjogo)
 {
     int chance_dia;
@@ -400,7 +435,7 @@ void probabilidade_estado(Dados_jogo *dadosjogo)
         dadosjogo->estados = noite;
     }
 }
-*/
+
 
 void proxima_onda(Dados_jogo *dadosjogo)
 {
@@ -417,11 +452,12 @@ void proxima_onda(Dados_jogo *dadosjogo)
     }
 }
 
-void radar(char *mapa, int tecla) //pensar em subtrair o tempo parado no cronometro
+void radar(Dados_jogo *dadosjogo,char *mapa, int tecla) //pensar em subtrair o tempo parado no cronometro
 {
+    int n = (dadosjogo->estados == dia) ? 13 : 8;
     if (tecla == ' ') {
         sleep(1);
-        for (int i = 0; i < 13; i++) {
+        for (int i = 0; i < n; i++) {
             if (mapa[i] == ' ') {
                 system("aplay -q Sons/x.3.wav");
             }
@@ -448,13 +484,17 @@ void som_fim_onda(Dados_jogo *dadosjogo) // quando esc clicado toca tbm
 
 void inicializa_arquivo()
 {
-    FILE *arquivo = fopen("score.txt", "w");
+    FILE *arquivo = fopen("score.txt", "r");
 
     if (arquivo == NULL) {
-        printf("Erro ao abrir arquivo\n");
-    } else {
-        //fprintf(arquivo, "1- %d\n2- %d\n3- %d\n", 0, 0, 0);
-        fprintf(arquivo, "%d\n%d\n%d\n", 0, 0, 0);
+        arquivo = fopen("score.txt", "w");
+
+        if (arquivo == NULL) {
+            printf("Erro ao criar arquivo\n");
+            return;
+        }
+
+        fprintf(arquivo, "0\n0\n0\n");
     }
 
     fclose(arquivo);
@@ -463,14 +503,23 @@ void inicializa_arquivo()
 void verifica_pontuacao(Dados_jogo *dadosjogo)
 {
     bool new_record = true;
-    int scores[3];
+    int scores[3] = {0, 0, 0}; // inicializa com 0 por segurança
+
     FILE *arquivo = fopen("score.txt", "r");
-    fscanf(arquivo, "%d", &scores[0]);
-    fscanf(arquivo, "%d", &scores[1]);
-    fscanf(arquivo, "%d", &scores[2]);
+    if (arquivo == NULL) {
+        printf("Erro ao abrir score.txt para leitura\n");
+        arquivo = NULL; // scores já está zerado
+    } else {
+        if (fscanf(arquivo, "%d %d %d", &scores[0], &scores[1], &scores[2]) != 3) {
+            // arquivo corrompido ou incompleto: volta para 0,0,0
+            scores[0] = scores[1] = scores[2] = 0;
+        }
+        fclose(arquivo);
+    }
+
     if (dadosjogo->pontuacao > scores[0]) {
         scores[2] = scores[1];
-        scores[1] = scores[0]; 
+        scores[1] = scores[0];
         scores[0] = dadosjogo->pontuacao;
     }
     else if (dadosjogo->pontuacao > scores[1]) {
@@ -483,9 +532,8 @@ void verifica_pontuacao(Dados_jogo *dadosjogo)
     else {
         new_record = false;
     }
-    fclose(arquivo);
+
     atualiza_scores(scores, new_record);
-    
 }
 
 
