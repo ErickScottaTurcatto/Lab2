@@ -1,9 +1,11 @@
-#define _POSIX_C_SOURCE 199309L // linha adds por conta de bug no CLOCK_MONOTONIC 
+#define _POSIX_C_SOURCE 199309L // linha adds por conta 
+//do bug no CLOCK_MONOTONIC 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 typedef struct {
     enum {
@@ -57,9 +59,9 @@ void atualiza_scores(int *scores, bool newrecord);
 void verifica_pontuacao(Dados_jogo *dadosjogo);
 void inicializacoes_partida (Dados_jogo *dadosjogo);
 void probabilidade_estado(Dados_jogo *dadosjogo);
-void atualiza_inimigos_onda(Dados_jogo *dadosjogo, char *mapa, crono *c_inimigos, int n);
+void upd_inim(Dados_jogo *dadosjogo, char *mapa, crono *c_inimigos, int n);
 void sorteio(Dados_jogo *dadosjogo, int chance_dia);
-void troca_posicoes_ranking(Dados_jogo *dadosjogo, int *scores, bool *new_record);
+void upd_pos_rank(Dados_jogo *dadosjogo, int *scores, bool *new_record);
 
 int main()
 {
@@ -182,7 +184,10 @@ void inicializacoes_partida (Dados_jogo *dadosjogo)
 void gameover(Dados_jogo *dadosjogo)
 {
     bool exit = false;
-    printf("GAME OVER Pontuacao: %d  Onda: %d\n", dadosjogo->pontuacao, dadosjogo->onda); 
+    printf("\n");
+    printf("GAME OVER\n");
+    printf("Pontuacao: %d ", dadosjogo->pontuacao); 
+    printf("Onda: %d\n", dadosjogo->onda);
     printf("Digite 'esc' para sair ou 'r' para comecar outra partida\n");
     while (!exit) {
         int tecla = lechar();
@@ -202,7 +207,8 @@ void gameover(Dados_jogo *dadosjogo)
     }
 }
 
-//responsavel por iniciar a onda e conter toda a mecânica necessária da onda
+//responsavel por iniciar a onda e conter toda a mecânica necessária
+//da onda
 void joga_onda (Dados_jogo *dadosjogo)
 {
     char mapa[13];
@@ -219,7 +225,7 @@ void joga_onda (Dados_jogo *dadosjogo)
         if (dadosjogo->inimigos_vivos <= 0)
             dadosjogo->fim_onda = true;
         else
-            atualiza_inimigos_onda(dadosjogo, mapa, &c_inimigos, n);
+            upd_inim(dadosjogo, mapa, &c_inimigos, n);
         desenha_jogo(mapa, dadosjogo, n);
         som_fim_onda(dadosjogo);
     }
@@ -227,8 +233,9 @@ void joga_onda (Dados_jogo *dadosjogo)
         pontuacao_itens(dadosjogo);
 }
 
-//define qual é o valor definitivo do tempo (dia/noite), atualiza o mapa e faz a conta do tempo do cronometro
-void atualiza_inimigos_onda(Dados_jogo *dadosjogo, char *mapa, crono *c_inimigos, int n) 
+//define qual é o valor definitivo do tempo (dia/noite), atualiza o mapa e 
+//faz a conta do tempo do cronometro
+void upd_inim(Dados_jogo *dadosjogo, char *mapa, crono *c_inimigos, int n) 
 {
     double tempodefinido;
     if (dadosjogo->estados == dia) 
@@ -298,7 +305,7 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo, int n)
                 mapa[i] = ' ';
             }
         }
-    if(dadosjogo->inimigo_inativos > 0) {
+    if(dadosjogo->inimigo_inativos > 0 && mapa[n-1] == ' ') {
         mapa[n-1] = inimigos_random(dadosjogo); 
         som_de_spawn(mapa, n-1);
         dadosjogo->inimigo_inativos--; 
@@ -308,15 +315,23 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo, int n)
 //desenha na tela o jogo
 void desenha_jogo(char *mapa, Dados_jogo *dadosjogo, int n)
 {
-    printf("  %d %d %c", dadosjogo->pontuacao, dadosjogo->municao, dadosjogo->arma_atual == 10 ? 'n' : dadosjogo->arma_atual + '0');
+    //printf("\033[2K\r");//limpa a linha do terminal, 
+    //evita de ocorrer o bug do "inimigo fantasma"
+    char dig;
+    if (dadosjogo->arma_atual == 10)
+        dig = 'n';
+    else
+        dig = dadosjogo->arma_atual + '0';
+    printf("  %d %d %c", dadosjogo->pontuacao, dadosjogo->municao, dig);
     fflush(stdout);
     if (dadosjogo->estados == dia) {
         for(int i = 0; i < n; i++)
             printf("%c", mapa[i]);
     }
-    
-    printf("\r");
-    fflush(stdout); //limpa o buffer de saida, para que o printf seja executado imediatamente
+   
+    printf("\033[K\r");//limpa o resto da linha a direita, 
+    //resolve o mesmo bug que o printf("\033[2K\r"), mais otimizado
+    fflush(stdout); //limpa o buffer de saida
 }
 
 //som dos inimigos spawnando
@@ -363,17 +378,19 @@ void som_trocaarma(Dados_jogo *dadosjogo)
         system("aplay -q Sons/11.3.wav &");
     }
     else {
-        sprintf(comando, "aplay -q Sons/%c.3.wav &", dadosjogo->arma_atual + '0');
+        char pdc = dadosjogo->arma_atual + '0';
+        sprintf(comando, "aplay -q Sons/%c.3.wav &", pdc);
         system(comando);
     }
 }
 
 //atira
-void atira(Dados_jogo *dadosjogo, char *mapa, int tecla, int n) //não da para adds mais nada ta com 21 já
+void atira(Dados_jogo *dadosjogo, char *mapa, int tecla, int n) 
 {
     if (tecla == 13 && dadosjogo->municao > 0) {
         for(int i = 0; i < n; i++) {
-            if ((mapa[i] == 'N' || mapa[i] == 'n') && dadosjogo->arma_atual == 10) {
+            int at = dadosjogo->arma_atual;
+            if ((mapa[i] == 'N' || mapa[i] == 'n') && at == 10) {
                 mapa[i] = (mapa[i] == 'N') ? 'n' : ' ';
                 if (mapa[i] == ' ') {
                     pontuacao_mortes(dadosjogo, i, true);
@@ -467,10 +484,12 @@ void sorteio(Dados_jogo *dadosjogo, int chance_dia)
 void proxima_onda(Dados_jogo *dadosjogo)
 {
     bool exit = false;
+    printf("Onda: %d Pontuacao: %d", dadosjogo->onda,dadosjogo->pontuacao);
+    printf("\n");
+    printf("Digite 'r' para jogar a proxima onda ou 'esc' para sair"); 
+
     while (!exit) {
         int tecla = lechar();
-
-        printf(" Onda: %d Pontuacao: %d  -- Digite 'r' para jogar a proxima onda ou 'esc' para sair\r", dadosjogo->onda, dadosjogo->pontuacao); 
         sair(dadosjogo, tecla);
         newonda(dadosjogo, tecla);
         if (tecla == 'r' || tecla == 27 ) {
@@ -505,7 +524,9 @@ void radar(char *mapa, int tecla, int n)
 void som_fim_onda(Dados_jogo *dadosjogo) 
 {
     if (dadosjogo->fim_onda) {
-        system("aplay -q Sons/6.2.wav Sons/7.2.wav Sons/8.2.wav Sons/9.2.wav Sons/9.2.wav");
+        char comando[100] = "aplay -q Sons/6.2.wav Sons/7.2.wav ";
+        strcat(comando, "Sons/8.2.wav Sons/9.2.wav Sons/9.2.wav");
+        system(comando);
         struct timespec espera = {1, 500000000};
         nanosleep(&espera, NULL);
     }
@@ -541,18 +562,19 @@ void verifica_pontuacao(Dados_jogo *dadosjogo)
         printf("Erro ao abrir score.txt para leitura\n");
         arquivo = NULL; 
     } else {
-        int saida = fscanf(arquivo, "%d %d %d", &scores[0], &scores[1], &scores[2]);
-        if (saida != 3) {
+        int s;
+        s = fscanf(arquivo,"%d %d %d", &scores[0], &scores[1], &scores[2]);
+        if (s != 3) {
             scores[0] = scores[1] = scores[2] = 0;
         }
         fclose(arquivo);
     }
-    troca_posicoes_ranking(dadosjogo, scores, &new_record);
+    upd_pos_rank(dadosjogo, scores, &new_record);
     atualiza_scores(scores, new_record);
 }
 
 //troca as posições do ranking no vetor scores
-void troca_posicoes_ranking(Dados_jogo *dadosjogo, int *scores, bool *new_record)
+void upd_pos_rank(Dados_jogo *dadosjogo, int *scores, bool *new_record)
 {
     if (dadosjogo->pontuacao > scores[0]) {
         scores[2] = scores[1];
