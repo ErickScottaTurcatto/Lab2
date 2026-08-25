@@ -243,7 +243,10 @@ void s_apara(Str s, Str_c sobras)
 void s_imprime(Str_c s)
 {
   s_ok(s);
-  //...
+
+  for (int i = 0; i < s->tam_bytes; i++) {
+    putchar(s->dados[i]);
+  }
 }
 
 void s_grava_arquivo(Str_c s, char *nome)
