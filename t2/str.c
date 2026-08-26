@@ -156,7 +156,42 @@ int s_busca_c(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+  
+  if (pos < 0) {
+    pos = pos + s->tam_caracteres + 1;
+  }
+
+  byte *posicao = u8_avanca_unichar(s->dados, pos);
+  if (posicao == NULL) return -1;
+
+  while (posicao < s->dados + s->tam_bytes) {
+    unichar uni_s;
+    int nb = u8_unichar_nos_bytes(s->dados + s->tam_bytes - posicao, posicao, &uni_s);
+    if (nb < 0) return -1;
+
+    byte *posicao_sb = sb->dados;
+    bool achou = false;
+
+    while (posicao_sb < sb->dados + sb->tam_bytes) {
+      unichar uni_sb;
+      int nsb = u8_unichar_nos_bytes(sb->dados + sb->tam_bytes - posicao_sb, posicao_sb, &uni_sb);
+      if (nsb < 0) return -1;
+
+      if (uni_s == uni_sb) {
+        achou = true;
+        break;
+      }
+
+      posicao_sb += nsb;
+    }
+
+    if (achou)
+      return pos;
+
+    posicao += nb;
+    pos++;
+  }
+
   return -1;
 }
 

@@ -8,9 +8,24 @@
 int main()
 {
   char *a = "Rábica";
+  char *b = "eeeieeeeeea";
   Str s = s_cria(a);
+  Str sb = s_cria(b);
   printf("Deve escrever [%s] ", a);
   s_imprime(s);
+  printf("\n");
+  printf("Deve escrever [%s] ", b);
+  s_imprime(sb);
+  printf("\n");
+  //teste da função s_igual
+  bool igual = s_igual(s, sb);
+  printf("%s\n", igual ? "true" : "false");
+  //teste da função s_busca_c
+  int res = s_busca_c(s, -5, sb);
+  printf("%d\n", res);
+
+
+ 
   Str ss = s_cria_substring(s, 3, 2);
   printf("\nDeve escrever [ic] ");
   s_imprime(ss);
@@ -24,4 +39,5 @@ int main()
   s_imprime(s);
   s_destroi(ss);
   s_destroi(s);
+  
 }
