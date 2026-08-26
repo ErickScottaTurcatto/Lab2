@@ -31,6 +31,7 @@ struct str {
 // aborta o programa se não tiver
 static void s_ok(Str_c s)
 {
+  
 }
 
 //...
@@ -139,8 +140,17 @@ bool s_igual(Str_c s, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
-  return false;
+  
+  if (s->tam_bytes != sb->tam_bytes || s->tam_caracteres != sb->tam_caracteres) {
+    return false;
+  }
+
+  for (int i = 0; i < s->tam_bytes; i++) {
+    if (s->dados[i] != sb->dados[i])
+      return false;
+  }
+
+  return true;
 }
 
 int s_busca_c(Str_c s, int pos, Str_c sb)
@@ -195,9 +205,32 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
 
 void s_substring(Str s, Str_c sb, int pos, int tam)
 {
+  /*int inicio, i = 0, indice = 0;
+  int fim = 0;
+  int alocar = 0;
   s_ok(s);
   s_ok(sb);
-  //...
+
+  if (pos < 0) {
+    pos = pos + sb->tam_caracteres + 1;
+    if (pos < 0)
+      inicio = 0;
+  } else if (pos >= sb->tam_caracteres && tam >= 0) {
+    s = ""; // verificar isso
+  } else {
+    inicio = pos;
+  }
+
+  byte *endereco_inicio;
+  endereco_inicio =  u8_avanca_unichar(sb->dados[i], inicio);
+
+  while (fim != tam) {
+    int nb = u8_nbytes_no_unichar_que_comeca_com(endereco_inicio);
+    alocar +=nb;
+    endereco_inicio = endereco_inicio + nb;
+    fim++;
+  }*/
+
 }
 
 void s_copia(Str s, Str_c sb)
