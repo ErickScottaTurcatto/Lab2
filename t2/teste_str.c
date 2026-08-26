@@ -8,7 +8,7 @@
 int main()
 {
   char *a = "Rábica";
-  char *b = "eeeieeeeeea";
+  char *b = "eeeieeeeeebc";
   Str s = s_cria(a);
   Str sb = s_cria(b);
   printf("Deve escrever [%s] ", a);
@@ -21,9 +21,11 @@ int main()
   bool igual = s_igual(s, sb);
   printf("%s\n", igual ? "true" : "false");
   //teste da função s_busca_c
-  int res = s_busca_c(s, -5, sb);
+  int res = s_busca_c(s, 2, sb);
   printf("%d\n", res);
-
+  //teste da função s_busca_c
+  int buscanc= s_busca_nc(s, 3, sb);
+  printf("%d\n", buscanc);
 
  
   Str ss = s_cria_substring(s, 3, 2);

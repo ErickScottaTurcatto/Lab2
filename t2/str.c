@@ -199,7 +199,42 @@ int s_busca_nc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+  
+  if (pos < 0) { // tratar posições invalidas, como por exemplo -10, max o maximo é -7
+    pos = pos + s->tam_caracteres + 1;
+  }
+
+  byte *posicao = u8_avanca_unichar(s->dados, pos);
+  if (posicao == NULL) return -1;
+
+  while (posicao < s->dados + s->tam_bytes) {
+    unichar uni_s;
+    int nb = u8_unichar_nos_bytes(s->dados + s->tam_bytes - posicao, posicao, &uni_s);
+    if (nb < 0) return -1;
+
+    byte *posicao_sb = sb->dados;
+    bool igual = false;
+
+    while (posicao_sb < sb->dados + sb->tam_bytes) {
+      unichar uni_sb;
+      int nsb = u8_unichar_nos_bytes(sb->dados + sb->tam_bytes - posicao_sb, posicao_sb, &uni_sb);
+      if (nsb < 0) return -1;
+
+      if (uni_s == uni_sb) {
+        igual = true;
+        break;
+      }
+
+      posicao_sb += nsb;
+    }
+
+    if (!igual)
+      return pos;
+    
+    posicao += nb;
+    pos++;
+  }
+
   return -1;
 }
 
