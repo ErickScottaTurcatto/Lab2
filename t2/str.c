@@ -115,8 +115,7 @@ Str s_cria_de_arquivo(char *nome)
 int s_tam(Str_c s)
 {
   s_ok(s);
-  //...
-  return 0;
+  return s->tam_caracteres;
 }
 
 char *s_strc(Str_c s)
