@@ -55,6 +55,10 @@ Str s_cria(char const *strC)
   int i = 0;
   Str s = malloc(sizeof(*s));
   assert(s != NULL);
+  s->dados = NULL;
+  s->tam_caracteres = 0;
+  s->tam_bytes = 0;
+  s->tam_bytes_alocados = 0;
   
   if (strC != NULL) {
     int tam_bytes = 0;
@@ -85,7 +89,7 @@ Str s_cria(char const *strC)
 void s_destroi(Str s)
 {
   s_ok(s);
-  //...
+  free(s->dados);
   free(s);
 }
 
@@ -105,8 +109,43 @@ Str s_cria_cópia(Str_c s)
 // Retorna uma string vazia em caso de erro.
 Str s_cria_de_arquivo(char *nome)
 {
+  unsigned char *temp;
   Str s = s_cria("");
-  //...
+  
+  FILE *arquivo;
+
+  arquivo = fopen(nome, "r");
+  if (arquivo == NULL) {
+    printf("Não foi possível abrir o arquivo '%s' para leitura\n", nome);
+    return s;
+  }
+  fseek(arquivo, 0, SEEK_END);
+  long tamanho = ftell(arquivo);
+
+  int n = MIN_ALLOC;
+
+  while (n < tamanho) {
+    n*=2;
+  }
+
+  temp = realloc(s->dados, n);
+  if (temp != NULL) {
+    s->dados = temp;
+    s->tam_bytes_alocados = n;
+    s->tam_bytes = tamanho;
+  }
+  rewind(arquivo); //volta para o inicio
+
+  int car;
+  int i = 0;
+
+  while ((car = fgetc(arquivo)) != EOF) {
+      s->dados[i] = car;
+      i++;
+  }
+
+  fclose(arquivo);
+  s->tam_caracteres = u8_conta_unichar_nos_bytes(s->tam_bytes, s->dados);
   return s;
 }
 
@@ -121,15 +160,39 @@ int s_tam(Str_c s)
 char *s_strc(Str_c s)
 {
   s_ok(s);
-  //...
-  return NULL;
+
+  char *p;
+  p = (char *) malloc(s->tam_bytes + 1);
+  
+  for(int i = 0; i < s->tam_bytes; i++) {
+    p[i] = s->dados[i];
+  }
+  
+  p[s->tam_bytes] = '\0';
+
+  return p;
 }
 
 unichar s_ch(Str_c s, int pos)
 {
   s_ok(s);
-  //...
-  return UNI_INV;
+  byte *codigo;
+  unichar endereco;
+
+  if (pos >= s->tam_caracteres) return UNI_INV;
+
+  if(pos < 0) {
+    pos = pos + s->tam_caracteres +1;
+    if (pos < 0) return UNI_INV;
+  }
+
+  codigo = u8_avanca_unichar(s->dados, pos);
+  if (codigo == NULL)
+    return UNI_INV;
+
+
+  int a = u8_unichar_nos_bytes(s->tam_bytes - (codigo - s->dados), codigo, &endereco);
+  return endereco;
 }
 
 
@@ -258,8 +321,25 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 {
   s_ok(s);
   s_ok(buscada);
+
+  /*
+  if (pos < 0) {
+    pos = pos + s->tam_caracteres + 1;
+  }
+  byte *posicao_buscada = buscada->dados;
+  if (posicao_buscada == NULL) return -1;
+
+  unichar uni_buscada;
+  int nsb = u8_unichar_nos_bytes(buscada->dados + buscada->tam_bytes - posicao_buscada, posicao_buscada, &uni_buscada);
+  if (nsb < 0) return -1;
+
+  while () {
+
+    while (enquanto forem iguais)
+  }
+  
   //...
-  return -1;
+  return -1;*/
 }
 
 
@@ -354,7 +434,20 @@ void s_imprime(Str_c s)
 void s_grava_arquivo(Str_c s, char *nome)
 {
   s_ok(s);
-  //...
+  FILE *arquivo;
+
+  arquivo = fopen(nome, "w");
+  if (arquivo == NULL) {
+    printf("Não foi possível abrir o arquivo 'dados' para escrita.\n");
+    exit(1);
+  }
+
+  for (int i = 0; i < s->tam_bytes; i++) {
+    fputc(s->dados[i], arquivo);
+  }
+  
+  fclose(arquivo);
+
 }
 
 

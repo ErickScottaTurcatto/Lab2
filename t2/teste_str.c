@@ -4,6 +4,7 @@
 
 #include "str.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int main()
 {
@@ -26,8 +27,28 @@ int main()
   //teste da função s_busca_c
   int buscanc= s_busca_nc(s, 3, sb);
   printf("%d\n", buscanc);
+  //teste funcao s_grava_arquivo
+  s_grava_arquivo(s, "arquivo.txt");
+  //teste funcao s_cria_de_arquivo
+  Str c = s_cria_de_arquivo("arquivo.txt");
+  s_imprime(c);
+  printf("\n");
 
+
+  //teste da funçao s_strc
+  char *str;
+  str = s_strc(s);
+  printf("%s\n", str);
+  free(str);
+
+  //teste funcao unichar s_ch
+
+  unichar ab = s_ch(s, 0);
+  printf("%u\n", ab);
+  printf("%c\n", ab); //vai funcionar ate os caracteres ASCII
  
+  
+
   Str ss = s_cria_substring(s, 3, 2);
   printf("\nDeve escrever [ic] ");
   s_imprime(ss);
