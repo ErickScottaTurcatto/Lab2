@@ -9,7 +9,7 @@
 int main()
 {
   char *a = "abacaxi";
-  char *b = "";
+  char *b = "barco";
   Str s = s_cria(a);
   Str sb = s_cria(b);
   printf("Deve escrever [%s] ", a);
@@ -49,6 +49,11 @@ int main()
 
   //teste substitui
   s_substitui(s, 2, 200, sb);
+  s_imprime(s);
+  printf("\n");
+
+  //teste s_substring
+  s_substring(s, sb, 2, -1);
   s_imprime(s);
   printf("\n");
  

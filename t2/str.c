@@ -409,8 +409,7 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
     while (i <= fim) {
         cursor = u8_avanca_unichar(s->dados, i);
 
-        qtdbyte +=
-            u8_nbytes_no_unichar_que_comeca_com(*cursor);
+        qtdbyte += u8_nbytes_no_unichar_que_comeca_com(*cursor);
 
         i++;
     }
@@ -469,32 +468,68 @@ static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco)
 
 void s_substring(Str s, Str_c sb, int pos, int tam)
 {
-  /*int inicio, i = 0, indice = 0;
-  int fim = 0;
-  int alocar = 0;
+  
   s_ok(s);
   s_ok(sb);
+  int inicio = pos;
+  int fim;
 
-  if (pos < 0) {
-    pos = pos + sb->tam_caracteres + 1;
-    if (pos < 0)
-      inicio = 0;
-  } else if (pos >= sb->tam_caracteres && tam >= 0) {
-    s = ""; // verificar isso
-  } else {
-    inicio = pos;
+  if (pos < 0){
+    inicio = pos + sb->tam_caracteres + 1;
+    if (inicio < 0) inicio = 0;
   }
 
-  byte *endereco_inicio;
-  endereco_inicio =  u8_avanca_unichar(sb->dados[i], inicio);
+  if (inicio > sb->tam_caracteres) {
+    inicio = sb->tam_caracteres; //verificar isso
+  }
 
-  while (fim != tam) {
-    int nb = u8_nbytes_no_unichar_que_comeca_com(endereco_inicio);
-    alocar +=nb;
-    endereco_inicio = endereco_inicio + nb;
-    fim++;
-  }*/
+  fim = pos + tam -1;
+  if (fim <= 0) {
+    fim = fim + sb->tam_caracteres +1;
+  }
+  if (fim > sb->tam_caracteres - 1) {
+    fim = sb->tam_caracteres - 1;
+  }
+  int byte_inicio;
+  if(inicio == sb->tam_caracteres) {
+    byte_inicio = sb->tam_bytes;
+  } else{
+    byte_inicio = (int)(u8_avanca_unichar(sb->dados, inicio) - sb->dados);
+  }
 
+  
+  byte *cursor;
+  int i = inicio;
+  int qtdbyte = 0;
+
+  while (i <= fim) {
+      cursor = u8_avanca_unichar(sb->dados, i);
+
+      qtdbyte += u8_nbytes_no_unichar_que_comeca_com(*cursor);
+
+      i++;
+  }
+  
+  int bytefim = byte_inicio + qtdbyte;
+  //int bytesadeslocar = sb->tam_bytes - qtdbyte;
+
+  free(s->dados);
+  int new_capacidade = capacidade(qtdbyte);
+  
+  byte *d;
+  d = malloc(new_capacidade);
+  if (d == NULL) {
+    exit(1);
+  }
+  s->dados = d;
+
+  for (int i = 0; i < qtdbyte; i++) {
+    s->dados[i] = sb->dados[byte_inicio+i];
+  }
+
+  s->tam_bytes = qtdbyte;
+  s->tam_caracteres = fim-inicio+1; // ou fim - inicio + 1, calculado corretamente
+  s->tam_bytes_alocados = new_capacidade;
 }
 
 void s_copia(Str s, Str_c sb)
