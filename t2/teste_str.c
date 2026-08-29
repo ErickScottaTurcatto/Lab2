@@ -48,15 +48,34 @@ int main()
   printf("%c\n", ab); //vai funcionar ate os caracteres ASCII
 
   //teste substitui
-  s_substitui(s, 2, 200, sb);
-  s_imprime(s);
+  //s_substitui(s, 2, 200, sb);
+  //s_imprime(s);
   printf("\n");
 
   //teste s_substring
-  s_substring(s, sb, 2, -1);
-  s_imprime(s);
+  //s_substring(s, sb, 2, -1);
+  //s_imprime(s);
+  printf("\n");
+
+  //teste s_copia
+  //s_copia(s, sb);
+  //s_imprime(s);
+  printf("\n");
+
+  //teste s_insere
+  //s_insere(s, 3, sb);
+  //s_imprime(s);
   printf("\n");
  
+  //teste s_insere_c
+  s_imprime(s);
+  printf("\n");
+  char *crt = "Z";
+  Str scrt = s_cria(crt);
+  unichar car = s_ch(scrt, 0);
+  s_insere_c(s, 5, car);
+  s_imprime(s);
+  printf("\n");
   
 
   Str ss = s_cria_substring(s, 3, 2);

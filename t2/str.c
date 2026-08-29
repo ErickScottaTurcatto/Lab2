@@ -545,7 +545,50 @@ void s_insere(Str s, int pos, Str_c sb)
 void s_insere_c(Str s, int pos, unichar c)
 {
   s_ok(s);
-  //...
+  
+  if (pos < 0) {
+    pos =  pos + s->tam_caracteres + 1;
+    if (pos < 0) pos = 0;
+  }
+  if (pos > s->tam_caracteres-1)
+    pos = s->tam_caracteres;
+
+
+  int byte_inicio;
+  if(pos == s->tam_caracteres) {
+    byte_inicio = s->tam_bytes;
+  } else{
+    byte_inicio = (int)(u8_avanca_unichar(s->dados, pos) - s->dados);
+  }
+
+  byte *bytes;
+  int qtdByte = u8_converte_pra_utf8(c, bytes);
+  int new_cap = qtdByte + s->tam_bytes;
+
+  if (new_cap > s->tam_bytes_alocados) {
+    new_cap = capacidade(new_cap);
+    byte *d;
+    d = realloc(s->dados, new_cap);
+    if (d == NULL) exit(1);
+    s->dados = d;
+    s->tam_bytes_alocados = new_cap;
+  }
+
+  if(byte_inicio < s->tam_bytes) {
+    int i = s->tam_bytes - 1;
+    while (i >= byte_inicio) {
+      s->dados[i + qtdByte] = s->dados[i];
+      i--;
+    }
+  }
+  
+  for (int i = 0; i < qtdByte; i++) {
+    s->dados[byte_inicio + i] = bytes[i];
+  }
+
+  s->tam_bytes += qtdByte;
+  s->tam_caracteres += 1;
+
 }
 
 void s_anexa(Str s, Str_c sb)
