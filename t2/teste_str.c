@@ -8,8 +8,8 @@
 
 int main()
 {
-  char *a = "Rábica";
-  char *b = "eeeieeeeeebc";
+  char *a = "abacaxi";
+  char *b = "";
   Str s = s_cria(a);
   Str sb = s_cria(b);
   printf("Deve escrever [%s] ", a);
@@ -46,6 +46,11 @@ int main()
   unichar ab = s_ch(s, 0);
   printf("%u\n", ab);
   printf("%c\n", ab); //vai funcionar ate os caracteres ASCII
+
+  //teste substitui
+  s_substitui(s, 2, 200, sb);
+  s_imprime(s);
+  printf("\n");
  
   
 

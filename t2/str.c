@@ -24,7 +24,7 @@ struct str {
 //   - não superior ao triplo do número de bytes necessários
 //     (exceto quando for o mínimo);
 //   - uma potência de 2.
-
+static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco); //para garantir
 // funções auxiliares {{{1
 
 // verifica se a string cad está de acordo com a especificação
@@ -36,6 +36,7 @@ static void s_ok(Str_c s)
 
 //...
 
+//minha funçao para deixar os bytes em potencia de 2
 static int capacidade(int nbytes)
 {
   if (nbytes == 0)
@@ -45,6 +46,8 @@ static int capacidade(int nbytes)
   while (nbytes > cap) {
     cap = cap * 2;
   }
+
+  return cap;
 }
 
 
@@ -349,7 +352,119 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+
+  int inicio = pos;
+  int fim = pos + tam -1;
+
+  if (pos < 0){
+    inicio = pos + s->tam_caracteres + 1;
+    if (inicio < 0) inicio = 0;
+  }
+
+  if (inicio > s->tam_caracteres) {
+    inicio = s->tam_caracteres;
+  }
+
+  int byte_inicio;
+  if(inicio == s->tam_caracteres) {
+    byte_inicio = s->tam_bytes;
+  } else{
+    byte_inicio = (int)(u8_avanca_unichar(s->dados, inicio) - s->dados);
+  }
+
+  if (sb == NULL) {
+    return;
+  }
+
+  if (fim < pos) {
+    int necessario = s->tam_bytes + sb->tam_bytes;
+    if (necessario > s->tam_bytes_alocados) {
+        int nova_cap = capacidade(necessario);
+        byte *d;
+        d = realloc(s->dados, nova_cap);
+        if (d == NULL) exit(1);
+        s->dados = d;
+        s->tam_bytes_alocados = nova_cap;
+    }
+   
+    desloca(s, sb->tam_bytes, byte_inicio-1, sb, byte_inicio);
+
+    s->tam_bytes += sb->tam_bytes;
+    s->tam_caracteres += sb->tam_caracteres;
+
+  } else {
+    if (fim < 0) {
+        fim = fim + s->tam_caracteres + 1;
+    }
+
+    if (fim > s->tam_caracteres - 1) {
+        fim = s->tam_caracteres - 1;
+    }
+
+    // Descobre quantos bytes existem no intervalo.
+    byte *cursor;
+    int i = inicio;
+    int qtdbyte = 0;
+
+    while (i <= fim) {
+        cursor = u8_avanca_unichar(s->dados, i);
+
+        qtdbyte +=
+            u8_nbytes_no_unichar_que_comeca_com(*cursor);
+
+        i++;
+    }
+
+    int bytefim = byte_inicio + qtdbyte;
+    int bytesadeslocar = sb->tam_bytes - qtdbyte;
+
+    // Se a string aumentar, verifica se precisa de mais memória.
+    if (bytesadeslocar > 0) {
+        int necessario = s->tam_bytes + bytesadeslocar;
+
+        if (necessario > s->tam_bytes_alocados) {
+            int nova_cap = capacidade(necessario);
+            byte *d = realloc(s->dados, nova_cap);
+
+            if (d == NULL) {
+                exit(1);
+            }
+
+            s->dados = d;
+            s->tam_bytes_alocados = nova_cap;
+        }
+    }
+
+    desloca(s, bytesadeslocar, bytefim - 1, sb, byte_inicio);
+
+    s->tam_bytes += bytesadeslocar;
+
+    s->tam_caracteres += sb->tam_caracteres - (fim - inicio + 1);
+}
+  
+}
+
+
+//pos byte final para deslocar
+static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco)
+{
+    if (tambyte > 0) {
+        int i = s->tam_bytes - 1;
+        while (i > pos) {
+            s->dados[i + tambyte] = s->dados[i];
+            i--;
+        }
+    } else if (tambyte < 0) {
+        int i = pos + 1;
+        while (i < s->tam_bytes) {
+            s->dados[i + tambyte] = s->dados[i];
+            i++;
+        }
+    }
+
+    for (int j = 0; j < sb->tam_bytes; j++) {
+        s->dados[comeco + j] = sb->dados[j];
+    }
 }
 
 void s_substring(Str s, Str_c sb, int pos, int tam)
