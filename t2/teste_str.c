@@ -9,7 +9,7 @@
 int main()
 {
   char *a = "abacaxi";
-  char *b = "x";
+  char *b = "zyyyc";
   Str s = s_cria(a);
   Str sb = s_cria(b);
   printf("Deve escrever [%s] ", a);
@@ -93,11 +93,16 @@ int main()
   printf("\n");
 
   //teste s_apara (inicio)
-  s_imprime(s);
-  printf("\n");
-  s_apara(s, sb);
-  s_imprime(s);
-  printf("\n");
+  //s_imprime(s);
+  //printf("\n");
+  //s_apara(s, sb);
+  //s_imprime(s);
+  //printf("\n");
+
+  //teste s_busca_rc
+  int p = s_busca_rc(s, -2, sb);
+  printf("%d\n", p);
+  
 
 
   Str ss = s_cria_substring(s, 3, 2);

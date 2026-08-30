@@ -308,7 +308,35 @@ int s_busca_rc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+  
+
+  if (pos < 0) {
+    pos = pos + s->tam_caracteres +1;
+    if (pos < 0) return -1;
+  }
+  if (pos > s->tam_caracteres-1) {
+    pos = s->tam_caracteres-1;
+  }
+
+  unichar carac;
+  byte *endereco;
+  int qtdbytes;
+  pos--;
+  while(pos >= 0) {
+    endereco = u8_avanca_unichar(s->dados, pos);
+    qtdbytes = u8_unichar_nos_bytes(s->tam_bytes - (endereco - s->dados), endereco, &carac);
+
+    for(int i = 0; i < sb->tam_caracteres; i++) {
+      unichar carsb;
+      byte *p = u8_avanca_unichar(sb->dados, i);
+      int qtdbytessb = u8_unichar_nos_bytes(sb->tam_bytes - (p - sb->dados), p, &carsb);
+      
+      if (carac == carsb) {
+        return pos;
+      }
+    }
+    pos--;
+  }
   return -1;
 }
 
