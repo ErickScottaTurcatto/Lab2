@@ -351,10 +351,13 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
   s_ok(s);
-  s_ok(sb);
+  if (sb != NULL) s_ok(sb);
+
+  int sb_bytes = (sb != NULL) ? sb->tam_bytes : 0;
+  int sb_chars = (sb != NULL) ? sb->tam_caracteres : 0;
 
   int inicio = pos;
-  int fim = pos + tam -1;
+  int fim = pos + tam - 1;
 
   if (pos < 0){
     inicio = pos + s->tam_caracteres + 1;
@@ -372,63 +375,49 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
     byte_inicio = (int)(u8_avanca_unichar(s->dados, inicio) - s->dados);
   }
 
-  if (sb == NULL) {
-    return;
-  }
 
   if (fim < pos) {
-    int necessario = s->tam_bytes + sb->tam_bytes;
+    int necessario = s->tam_bytes + sb_bytes;
     if (necessario > s->tam_bytes_alocados) {
         int nova_cap = capacidade(necessario);
-        byte *d;
-        d = realloc(s->dados, nova_cap);
+        byte *d = realloc(s->dados, nova_cap);
         if (d == NULL) exit(1);
         s->dados = d;
         s->tam_bytes_alocados = nova_cap;
     }
-   
-    desloca(s, sb->tam_bytes, byte_inicio-1, sb, byte_inicio);
 
-    s->tam_bytes += sb->tam_bytes;
-    s->tam_caracteres += sb->tam_caracteres;
+    desloca(s, sb_bytes, byte_inicio-1, sb, byte_inicio);
+
+    s->tam_bytes += sb_bytes;
+    s->tam_caracteres += sb_chars;
 
   } else {
     if (fim < 0) {
         fim = fim + s->tam_caracteres + 1;
     }
-
     if (fim > s->tam_caracteres - 1) {
         fim = s->tam_caracteres - 1;
     }
 
-    // Descobre quantos bytes existem no intervalo.
     byte *cursor;
     int i = inicio;
     int qtdbyte = 0;
 
     while (i <= fim) {
         cursor = u8_avanca_unichar(s->dados, i);
-
         qtdbyte += u8_nbytes_no_unichar_que_comeca_com(*cursor);
-
         i++;
     }
 
     int bytefim = byte_inicio + qtdbyte;
-    int bytesadeslocar = sb->tam_bytes - qtdbyte;
+    int bytesadeslocar = sb_bytes - qtdbyte;
 
-    // Se a string aumentar, verifica se precisa de mais memória.
     if (bytesadeslocar > 0) {
         int necessario = s->tam_bytes + bytesadeslocar;
-
         if (necessario > s->tam_bytes_alocados) {
             int nova_cap = capacidade(necessario);
             byte *d = realloc(s->dados, nova_cap);
-
-            if (d == NULL) {
-                exit(1);
-            }
-
+            if (d == NULL) exit(1);
             s->dados = d;
             s->tam_bytes_alocados = nova_cap;
         }
@@ -437,10 +426,8 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
     desloca(s, bytesadeslocar, bytefim - 1, sb, byte_inicio);
 
     s->tam_bytes += bytesadeslocar;
-
-    s->tam_caracteres += sb->tam_caracteres - (fim - inicio + 1);
-}
-  
+    s->tam_caracteres += sb_chars - (fim - inicio + 1);
+  }
 }
 
 
@@ -461,7 +448,8 @@ static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco)
         }
     }
 
-    for (int j = 0; j < sb->tam_bytes; j++) {
+    int sb_bytes = (sb != NULL) ? sb->tam_bytes : 0;
+    for (int j = 0; j < sb_bytes; j++) {          // <-- usa sb_bytes, não sb->tam_bytes
         s->dados[comeco + j] = sb->dados[j];
     }
 }
@@ -561,7 +549,7 @@ void s_insere_c(Str s, int pos, unichar c)
     byte_inicio = (int)(u8_avanca_unichar(s->dados, pos) - s->dados);
   }
 
-  byte *bytes;
+  byte bytes[4];   
   int qtdByte = u8_converte_pra_utf8(c, bytes);
   int new_cap = qtdByte + s->tam_bytes;
 
@@ -610,7 +598,95 @@ void s_apara(Str s, Str_c sobras)
 {
   s_ok(s);
   s_ok(sobras);
-  //...
+  //como verificar se tudo for igual? Dara loop infinito
+
+
+  //isso para saber quantos bytes remover no inicio
+  int somador = 0;
+  bool igual = true;
+  byte *posicao_s = s->dados; 
+  byte *posicao_sobras = sobras->dados;  
+  unichar caracter_sobras;
+  int qtdBytes_sobras;
+  int quantidadebytesdel = 0;
+
+  while(igual) {
+    unichar caracter_s;
+    int qtdBytes_s = u8_unichar_nos_bytes(s->tam_bytes - (posicao_s - s->dados), posicao_s, &caracter_s);
+
+    int i = 0;
+    while (i < 1) {
+      qtdBytes_sobras = u8_unichar_nos_bytes(sobras->tam_bytes - (posicao_sobras - sobras->dados), posicao_sobras, &caracter_sobras);
+
+      if (caracter_s != caracter_sobras) {
+        igual = false;
+        break;
+      }
+      somador++;
+      if(somador == sobras->tam_caracteres) {
+        quantidadebytesdel += sobras->tam_caracteres;
+        posicao_sobras = sobras->dados;
+        somador = 0;
+      }
+
+      posicao_sobras += qtdBytes_sobras;
+      i++;
+    }
+    posicao_s += qtdBytes_s;
+  }
+
+  //-------------------------------------------------
+
+  if (quantidadebytesdel > 0) {
+    s_remove(s, 0, quantidadebytesdel);
+  }
+
+  somador = 0;
+  posicao_s = s->dados; 
+  posicao_sobras = sobras->dados;  
+  quantidadebytesdel = 0;
+  bool endereco = true;
+  byte *enderecoinicio;
+  int indice = 0;
+  int indiceinicio;
+
+  while (indice < s->tam_caracteres) {
+    unichar caracter_s;
+    int qtdBytes_s = u8_unichar_nos_bytes(s->tam_bytes - (posicao_s - s->dados), posicao_s, &caracter_s);
+
+    
+    if (endereco == true) {
+      indiceinicio = indice;
+      endereco = false;
+    }
+    int i = 0;
+    while (i < 1) {
+      qtdBytes_sobras = u8_unichar_nos_bytes(sobras->tam_bytes - (posicao_sobras - sobras->dados), posicao_sobras, &caracter_sobras);
+      somador++;
+      if (caracter_s != caracter_sobras) {
+        endereco = true;
+        indiceinicio = s->tam_caracteres;
+        somador = 0;
+        posicao_sobras = sobras->dados;
+      }
+      
+      else if(somador == sobras->tam_caracteres) {
+        quantidadebytesdel += sobras->tam_caracteres;
+        posicao_sobras = sobras->dados;
+        somador = 0;
+      }
+      else{
+        posicao_sobras += qtdBytes_sobras;
+      }
+      
+      i++;
+    }
+    posicao_s += qtdBytes_s;
+    indice++;
+  }
+
+  s_remove(s, indiceinicio, s->tam_caracteres-indiceinicio);
+
 }
 
 // operações de E/S {{{1

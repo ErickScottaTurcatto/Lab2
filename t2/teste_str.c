@@ -9,7 +9,7 @@
 int main()
 {
   char *a = "abacaxi";
-  char *b = "barco";
+  char *b = "x";
   Str s = s_cria(a);
   Str sb = s_cria(b);
   printf("Deve escrever [%s] ", a);
@@ -73,10 +73,32 @@ int main()
   char *crt = "Z";
   Str scrt = s_cria(crt);
   unichar car = s_ch(scrt, 0);
-  s_insere_c(s, 5, car);
+  //s_insere_c(s, 5, car);
+  //s_imprime(s);
+  //printf("\n");
+
+  //teste s_anexa
+  //s_anexa(s, sb);
+  //s_imprime(s);
+  printf("\n");
+
+  //teste s_anexa_c
+  //s_anexa_c(s, car);
+  //s_imprime(s);
+  printf("\n");
+
+  //teste função s_remove
+  //s_remove(s, -7, 3);
+  //s_imprime(s);
+  printf("\n");
+
+  //teste s_apara (inicio)
   s_imprime(s);
   printf("\n");
-  
+  s_apara(s, sb);
+  s_imprime(s);
+  printf("\n");
+
 
   Str ss = s_cria_substring(s, 3, 2);
   printf("\nDeve escrever [ic] ");
