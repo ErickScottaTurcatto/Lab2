@@ -31,7 +31,24 @@ static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco); //para g
 // aborta o programa se não tiver
 static void s_ok(Str_c s)
 {
-  
+  if (s->tam_bytes == 0){
+    assert(s->tam_bytes_alocados == 0);
+    assert(s->dados == NULL);
+    return; 
+  }
+
+  assert(s->tam_bytes_alocados >= s->tam_bytes);
+  assert(s->tam_bytes_alocados >= MIN_ALLOC);
+
+  if (s->tam_bytes_alocados != MIN_ALLOC)
+   assert(s->tam_bytes_alocados <= s->tam_bytes*3);
+
+  //potencia de 2
+  int n = s->tam_bytes_alocados;
+  while (n != 1) {
+    assert(n%2 == 0);
+    n = n/2;
+  }
 }
 
 //...
@@ -344,33 +361,91 @@ int s_busca_rnc(Str_c s, int pos, Str_c sb)
 {
   s_ok(s);
   s_ok(sb);
-  //...
+  
+  if (pos < 0) {
+    pos = pos + s->tam_caracteres +1;
+    if (pos < 0) return -1;
+  }
+  if (pos > s->tam_caracteres-1) {
+    pos = s->tam_caracteres-1;
+  }
+
+  unichar carac;
+  byte *endereco;
+  int qtdbytes;
+  pos--;
+  while(pos >= 0) {
+    endereco = u8_avanca_unichar(s->dados, pos);
+    qtdbytes = u8_unichar_nos_bytes(s->tam_bytes - (endereco - s->dados), endereco, &carac);
+
+    bool diferente = false;
+    for(int i = 0; i < sb->tam_caracteres; i++) {
+      unichar carsb;
+      byte *p = u8_avanca_unichar(sb->dados, i);
+      int qtdbytessb = u8_unichar_nos_bytes(sb->tam_bytes - (p - sb->dados), p, &carsb);
+      
+      if (carac == carsb) {
+        diferente = true;
+      }
+  
+    }
+    if(diferente == false) {
+      return pos;
+    }
+    pos--;
+  }
   return -1;
 }
 
 int s_busca_s(Str_c s, int pos, Str_c buscada)
 {
   s_ok(s);
-  s_ok(buscada);
+  if(buscada != NULL)s_ok(buscada);
 
-  /*
   if (pos < 0) {
-    pos = pos + s->tam_caracteres + 1;
+    pos = pos + s->tam_caracteres +1;
+    if (pos < 0) return -1;
   }
-  byte *posicao_buscada = buscada->dados;
-  if (posicao_buscada == NULL) return -1;
-
-  unichar uni_buscada;
-  int nsb = u8_unichar_nos_bytes(buscada->dados + buscada->tam_bytes - posicao_buscada, posicao_buscada, &uni_buscada);
-  if (nsb < 0) return -1;
-
-  while () {
-
-    while (enquanto forem iguais)
+  if (pos > s->tam_caracteres-1) {
+    pos = s->tam_caracteres-1;
   }
-  
-  //...
-  return -1;*/
+
+  if (buscada == NULL) return pos;
+
+  unichar carac_s;
+  byte *end_s;
+  int qtdbytes_s;
+  int j = 0;
+  int posinicio;
+  bool igual = true;
+
+  while (pos < s->tam_caracteres) {
+    end_s = u8_avanca_unichar(s->dados, pos);
+    qtdbytes_s = u8_unichar_nos_bytes(s->tam_bytes - (end_s - s->dados), end_s, &carac_s);
+
+    if (igual == true){
+      posinicio = pos;
+      igual = false;
+    }
+
+    unichar carsb;
+    byte *p = u8_avanca_unichar(buscada->dados, j);
+    int qtdbytessb = u8_unichar_nos_bytes(buscada->tam_bytes - (p - buscada->dados), p, &carsb);
+
+    if (carac_s == carsb) {
+      j++;
+      if (j == buscada->tam_caracteres) {
+        return posinicio;
+      }
+      pos++;
+    } else {
+      pos = posinicio + 1;
+      j = 0;
+      igual = true;
+    }
+  }
+
+  return -1;
 }
 
 
