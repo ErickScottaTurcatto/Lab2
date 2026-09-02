@@ -151,6 +151,8 @@ dado_t l_dado_fim(Lista l)
 // retorna o dado na posição pos da lista
 dado_t l_dado_pos(Lista l, int pos)
 {
+  assert(!l_vazia(l));
+
   int posicao_na_lista = l->prim;
   for (int i = 0; i < pos; i++) {
     posicao_na_lista = l->prox[posicao_na_lista];
@@ -162,17 +164,65 @@ dado_t l_dado_pos(Lista l, int pos)
 // remove e retorna o dado no início da lista
 dado_t l_remove_inicio(Lista l)
 {
-  return 0;
+  assert(!l_vazia(l));
+
+  dado_t d = l->dados[l->prim];
+  int removido = l->prim;
+  l->prim = l->prox[l->prim];
+  l->prox[removido] = l->livre;
+  l->livre = removido;
+
+  return d;
 }
 
 // remove e retorna o dado no final da lista
 dado_t l_remove_fim(Lista l)
 {
-  return 0;
+  assert(!l_vazia(l));
+
+  // caso especial: só um elemento, início e fim são o mesmo
+  if (l->prox[l->prim] == -1) {
+    return l_remove_inicio(l);
+  }
+
+  // acha o penúltimo (aquele cujo prox aponta pro último)
+  int penultimo = l->prim;
+  while (l->prox[l->prox[penultimo]] != -1) {
+    penultimo = l->prox[penultimo];
+  }
+  int ultimo = l->prox[penultimo];
+
+  dado_t d = l->dados[ultimo];
+
+  l->prox[penultimo] = -1;
+
+  l->prox[ultimo] = l->livre;
+  l->livre = ultimo;
+
+  return d;
 }
 
 // remove e retorna o dado na posição pos da lista
 dado_t l_remove_pos(Lista l, int pos)
 {
-  return 0;
+  assert(!l_vazia(l));
+
+  if (pos == 0) {
+    return l_remove_inicio(l);
+  }
+
+  int anterior = l->prim;
+  for (int i = 0; i < pos - 1; i++) {
+    anterior = l->prox[anterior];
+  }
+
+  int removido = l->prox[anterior];
+  dado_t d = l->dados[removido];
+
+  l->prox[anterior] = l->prox[removido];
+
+  l->prox[removido] = l->livre;
+  l->livre = removido;
+
+  return d;
 }

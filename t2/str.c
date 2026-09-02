@@ -51,7 +51,7 @@ static void s_ok(Str_c s)
   }
 }
 
-//...
+
 
 //minha funçao para deixar os bytes em potencia de 2
 static int capacidade(int nbytes)
@@ -129,43 +129,40 @@ Str s_cria_cópia(Str_c s)
 // Retorna uma string vazia em caso de erro.
 Str s_cria_de_arquivo(char *nome)
 {
-  unsigned char *temp;
   Str s = s_cria("");
   
   FILE *arquivo;
 
-  arquivo = fopen(nome, "r");
+  arquivo = fopen(nome, "rb");
   if (arquivo == NULL) {
     printf("Não foi possível abrir o arquivo '%s' para leitura\n", nome);
     return s;
   }
   fseek(arquivo, 0, SEEK_END);
   long tamanho = ftell(arquivo);
-
-  int n = MIN_ALLOC;
-
-  while (n < tamanho) {
-    n*=2;
+  if (tamanho <= 0) {
+    fclose(arquivo);
+    return s;               
   }
 
-  temp = realloc(s->dados, n);
-  if (temp != NULL) {
-    s->dados = temp;
-    s->tam_bytes_alocados = n;
-    s->tam_bytes = tamanho;
-  }
   rewind(arquivo); //volta para o inicio
+
+  int n = capacidade((int) tamanho);
+  byte *temp = malloc(n);
+  assert(temp != NULL);
 
   int car;
   int i = 0;
-
   while ((car = fgetc(arquivo)) != EOF) {
-      s->dados[i] = car;
+      temp[i] = (byte) car;
       i++;
   }
 
-  fclose(arquivo);
+  s->dados = temp;
+  s->tam_bytes = i;
+  s->tam_bytes_alocados = n;
   s->tam_caracteres = u8_conta_unichar_nos_bytes(s->tam_bytes, s->dados);
+
   return s;
 }
 
@@ -199,7 +196,7 @@ unichar s_ch(Str_c s, int pos)
   byte *codigo;
   unichar endereco;
 
-  if (pos >= s->tam_caracteres) return UNI_INV;
+  if (pos >= s->tam_caracteres || pos == -1) return UNI_INV;
 
   if(pos < 0) {
     pos = pos + s->tam_caracteres +1;
@@ -460,7 +457,6 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
   int sb_chars = (sb != NULL) ? sb->tam_caracteres : 0;
 
   int inicio = pos;
-  int fim = pos + tam - 1;
 
   if (pos < 0){
     inicio = pos + s->tam_caracteres + 1;
@@ -469,6 +465,13 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
 
   if (inicio > s->tam_caracteres) {
     inicio = s->tam_caracteres;
+  }
+
+  int fim;
+  if (tam < 0) {
+    fim = s->tam_caracteres - 1;
+  } else {
+    fim = pos + tam - 1;
   }
 
   int byte_inicio;
@@ -529,12 +532,14 @@ void s_substitui(Str s, int pos, int tam, Str_c sb)
     desloca(s, bytesadeslocar, bytefim - 1, sb, byte_inicio);
 
     s->tam_bytes += bytesadeslocar;
-    s->tam_caracteres += sb_chars - (fim - inicio + 1);
+
+    int removidos = (fim >= inicio) ? (fim - inicio + 1) : 0;
+    s->tam_caracteres += sb_chars - removidos;
   }
 }
 
 
-//pos byte final para deslocar
+
 static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco)
 {
     if (tambyte > 0) {
@@ -552,7 +557,7 @@ static void desloca(Str s, int tambyte, int pos, Str_c sb, int comeco)
     }
 
     int sb_bytes = (sb != NULL) ? sb->tam_bytes : 0;
-    for (int j = 0; j < sb_bytes; j++) {          // <-- usa sb_bytes, não sb->tam_bytes
+    for (int j = 0; j < sb_bytes; j++) {         
         s->dados[comeco + j] = sb->dados[j];
     }
 }
@@ -619,7 +624,7 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
   }
 
   s->tam_bytes = qtdbyte;
-  s->tam_caracteres = fim-inicio+1; // ou fim - inicio + 1, calculado corretamente
+  s->tam_caracteres = fim-inicio+1; 
   s->tam_bytes_alocados = new_capacidade;
 }
 
@@ -697,101 +702,71 @@ void s_remove(Str s, int pos, int tam)
   s_substitui(s, pos, tam, NULL);
 }
 
+
 void s_apara(Str s, Str_c sobras)
 {
-  s_ok(s);
-  s_ok(sobras);
-  //como verificar se tudo for igual? Dara loop infinito
+  if (s == NULL) return;
+  if (sobras == NULL || s_tam(sobras) == 0) return;
 
+  int tam_s = s_tam(s);
+  int tam_sobras = s_tam(sobras);
+  if (tam_s == 0) return;
 
-  //isso para saber quantos bytes remover no inicio
-  int somador = 0;
-  bool igual = true;
-  byte *posicao_s = s->dados; 
-  byte *posicao_sobras = sobras->dados;  
-  unichar caracter_sobras;
-  int qtdBytes_sobras;
-  int quantidadebytesdel = 0;
+  //Encontra a posição do PRIMEIRO caractere 
+  int inicio = 0;
+  while (inicio < tam_s) {
+    unichar c = s_ch(s, inicio);
+    bool eh_sobra = false;
 
-  while(igual) {
-    unichar caracter_s;
-    int qtdBytes_s = u8_unichar_nos_bytes(s->tam_bytes - (posicao_s - s->dados), posicao_s, &caracter_s);
-
-    int i = 0;
-    while (i < 1) {
-      qtdBytes_sobras = u8_unichar_nos_bytes(sobras->tam_bytes - (posicao_sobras - sobras->dados), posicao_sobras, &caracter_sobras);
-
-      if (caracter_s != caracter_sobras) {
-        igual = false;
+    // Compara o caractere atual de 's' com cada caractere de 'sobras'
+    for (int j = 0; j < tam_sobras; j++) {
+      if (c == s_ch(sobras, j)) {
+        eh_sobra = true;
         break;
       }
-      somador++;
-      if(somador == sobras->tam_caracteres) {
-        quantidadebytesdel += sobras->tam_caracteres;
-        posicao_sobras = sobras->dados;
-        somador = 0;
-      }
-
-      posicao_sobras += qtdBytes_sobras;
-      i++;
     }
-    posicao_s += qtdBytes_s;
+
+    if (eh_sobra) {
+      inicio++;
+    } else {
+      break; 
+    }
   }
 
-  //-------------------------------------------------
-
-  if (quantidadebytesdel > 0) {
-    s_remove(s, 0, quantidadebytesdel);
+  // Se a string inteira for composta apenas por sobras
+  if (inicio == tam_s) {
+    s_substitui(s, 0, -1, NULL); // Esvazia a string
+    return;
   }
 
-  somador = 0;
-  posicao_s = s->dados; 
-  posicao_sobras = sobras->dados;  
-  quantidadebytesdel = 0;
-  bool endereco = true;
-  byte *enderecoinicio;
-  int indice = 0;
-  int indiceinicio;
+  int fim = tam_s - 1;
+  while (fim >= inicio) {
+    unichar c = s_ch(s, fim);
+    bool eh_sobra = false;
 
-  while (indice < s->tam_caracteres) {
-    unichar caracter_s;
-    int qtdBytes_s = u8_unichar_nos_bytes(s->tam_bytes - (posicao_s - s->dados), posicao_s, &caracter_s);
+    for (int j = 0; j < tam_sobras; j++) {
+      if (c == s_ch(sobras, j)) {
+        eh_sobra = true;
+        break;
+      }
+    }
 
-    
-    if (endereco == true) {
-      indiceinicio = indice;
-      endereco = false;
+    if (eh_sobra) {
+      fim--;
+    } else {
+      break; 
     }
-    int i = 0;
-    while (i < 1) {
-      qtdBytes_sobras = u8_unichar_nos_bytes(sobras->tam_bytes - (posicao_sobras - sobras->dados), posicao_sobras, &caracter_sobras);
-      somador++;
-      if (caracter_s != caracter_sobras) {
-        endereco = true;
-        indiceinicio = s->tam_caracteres;
-        somador = 0;
-        posicao_sobras = sobras->dados;
-      }
-      
-      else if(somador == sobras->tam_caracteres) {
-        quantidadebytesdel += sobras->tam_caracteres;
-        posicao_sobras = sobras->dados;
-        somador = 0;
-      }
-      else{
-        posicao_sobras += qtdBytes_sobras;
-      }
-      
-      i++;
-    }
-    posicao_s += qtdBytes_s;
-    indice++;
+  }
+  //Apaga os caracteres do FINAL
+  if (fim + 1 < tam_s) {
+    s_substitui(s, fim + 1, -1, NULL);
   }
 
-  s_remove(s, indiceinicio, s->tam_caracteres-indiceinicio);
-
+  //Apaga os caracteres do INÍCIO
+  if (inicio > 0) {
+    s_substitui(s, 0, inicio, NULL);
+  }
 }
-
 // operações de E/S {{{1
 
 void s_imprime(Str_c s)
@@ -808,9 +783,9 @@ void s_grava_arquivo(Str_c s, char *nome)
   s_ok(s);
   FILE *arquivo;
 
-  arquivo = fopen(nome, "w");
+  arquivo = fopen(nome, "wb");
   if (arquivo == NULL) {
-    printf("Não foi possível abrir o arquivo 'dados' para escrita.\n");
+    printf("Não foi possível abrir o arquivo '%s' para escrita.\n", nome);
     exit(1);
   }
 
@@ -824,4 +799,3 @@ void s_grava_arquivo(Str_c s, char *nome)
 
 
 // vim: foldmethod=marker shiftwidth=2
-
