@@ -18,4 +18,12 @@ int main()
 
     l_imprime(l);
     printf("\n");
+
+    Str um = s_cria("d");
+    Lista umc = l_cria();
+    l_insere(umc, um);
+
+    s = s_cria_unindo(umc, b);
+    s_imprime(s);
+    printf("\n");
 }

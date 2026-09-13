@@ -162,6 +162,27 @@ Str s_cria_número(double num)
 }
 
 
+Str s_cria_unindo(Lista l, Str sep)
+{
+  Str res;
+  Str resb;
+  Lista p = l;
+  if (l_vazia(l)) return NULL;
+  if (sep == NULL) return NULL;
+
+  int tam = l_tam(l);
+  res = s_cria_cópia(l_dado_pos(l, 0));//como é modificado precisa usar o copia
+
+  for (int i = 1; i < tam; i++) {
+    resb = l_dado_pos(l, i);
+    if(resb != NULL) {
+      s_anexa(res, sep);
+      s_anexa(res, resb);
+    }
+  }
+
+  return res;
+}
 
 
 void s_destroi(Str s)
