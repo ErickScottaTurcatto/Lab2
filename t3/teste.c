@@ -6,7 +6,7 @@
 int main()
 {
     Str s;
-    s = s_cria_número(98.49841984);
+    s = s_cria_número(98.49);
     s_imprime(s);
     printf("\n");
 
@@ -23,7 +23,10 @@ int main()
     Lista umc = l_cria();
     l_insere(umc, um);
 
-    s = s_cria_unindo(umc, b);
+    //s = s_cria_unindo(umc, b);
     s_imprime(s);
     printf("\n");
+
+    double decimal = s_número(s);
+    printf("%f\n", decimal);
 }

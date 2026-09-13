@@ -119,9 +119,9 @@ static int tamDouble(int inteiro, double deci)
   }
 }
 
-static int calcpotdez(int i)
+static long long calcpotdez(int i)
 {
-  int n = 1;
+  long long n = 1;
   for(int j = 0; j < i; j++){
     n*=10;
   }
@@ -132,7 +132,7 @@ static int calcpotdez(int i)
 // Aloca, inicializa e retorna uma nova string, contendo a representação decimal de num
 Str s_cria_número(double num)
 {
-  int parteInteira = (int)num;
+  long parteInteira = (long)num;
   double parteDecimal = num - parteInteira;
   int tam = tamDouble(parteInteira, parteDecimal); // ja inclui o '.'
   char numero[tam+1]; //+1 pois add '\0'
@@ -268,6 +268,47 @@ char *s_strc(Str_c s)
 
   return p;
 }
+
+static double calcpotdeci(int j)
+{
+  double n = 1.0 /calcpotdez(j);
+  return n;
+}
+
+double s_número(Str_c s)
+{
+  if(s == NULL) exit(1);
+  double res = 0;
+  int numdecimais = 0;
+  int tam = s_tam(s);
+  int numeros[tam];
+  bool contar = false;
+
+  for(int i = 0, j = 0; i < tam; i++){
+    if(contar) numdecimais++;
+    if (s->dados[i]  ==  '.') {
+      contar = true;
+      continue;
+    }
+    numeros[j] = s->dados[i] - '0';
+    
+    j++;
+  }
+
+  int parinteira = tam-1 - numdecimais;
+
+  for(int i = 0; i < parinteira; i++) {
+    res += (double)(numeros[i]*calcpotdez(parinteira-1-i));
+  }
+
+  for (int i = 0; i < numdecimais; i++) {
+    res += numeros[parinteira + i]*calcpotdeci(i+1);
+  }
+
+  return res;
+}
+
+
 
 unichar s_ch(Str_c s, int pos)
 {
