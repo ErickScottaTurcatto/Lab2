@@ -1,6 +1,7 @@
 #include "str.h"
 #include <stdio.h>
 #include "lista.h"
+#include "calc.h"
 
 
 int main()
@@ -29,4 +30,12 @@ int main()
 
     double decimal = s_número(s);
     printf("%f\n", decimal);
+
+
+    
+    Str calc = s_cria("92+a ba 3b3 ** *  " );
+    Lista caltest = tokeniza(calc);
+    l_imprime(caltest);
+    printf("\n");
+    printf("qtd de tokens: %d\n", l_tam(caltest));
 }
