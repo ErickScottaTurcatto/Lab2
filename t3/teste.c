@@ -1,4 +1,4 @@
-#include "str.h"
+/*#include "str.h"
 #include <stdio.h>
 #include "lista.h"
 #include "calc.h"
@@ -38,4 +38,4 @@ int main()
     l_imprime(caltest);
     printf("\n");
     printf("qtd de tokens: %d\n", l_tam(caltest));
-}
+}*/
