@@ -295,7 +295,7 @@ double s_número(Str_c s)
     j++;
   }
 
-  int parinteira = tam-1 - numdecimais;
+  int parinteira = contar ? (tam - 1 - numdecimais) : tam;
 
   for(int i = 0; i < parinteira; i++) {
     res += (double)(numeros[i]*calcpotdez(parinteira-1-i));

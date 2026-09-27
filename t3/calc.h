@@ -7,10 +7,15 @@
 
 #include "str.h"
 #include "lista.h"
+#include "dicionario.h"
 
+
+bool str_igual(chave_t a, chave_t b);
+
+bool str_menor(chave_t a, chave_t b);
 // Calcula o valor de expressão e retorna uma nova Str contendo o resultado.
 // Em cado de erro, os primeiros caracteres da Str de retorno são "#ERRO ".
-Str calculadora(Str expressão);
+Str calculadora(Str expressão, Dicionário dic);
 
 // Retorna uma nova Lista contendo substrings de txt.
 // Uma substring inicia em um caractere diferente de espaço, tabulação,

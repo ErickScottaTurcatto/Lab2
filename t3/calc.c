@@ -5,9 +5,19 @@
 #include <stdbool.h>
 #include "operacoes.h"
 #include <stdlib.h>
+#include "dicionario.h"
+#include <math.h>
 
-
+double Valor_numero(Str l, Dicionário dic);
 Lista tokeniza(Str txt);
+
+bool str_igual(chave_t a, chave_t b) {
+    return s_igual((Str)a, (Str)b); 
+}
+
+bool str_menor(chave_t a, chave_t b) {
+    return false; // não é usada
+}
 
 static bool dig_pont(unichar c)
 {
@@ -63,36 +73,81 @@ typedef enum {E, O, Er, D, T} acao;
 acao tabela[N_LINHAS][N_COLUNAS] = {
     //col          F   +-  */   ^   (    )  =
     [l_v] =        {T,  E,  E,  E,  E,  Er,  E},
-    [l_soma_sub] = {O,  O,  E,  E,  E,  O,   O},
-    [l_mul_div] =  {O,  O,  O,  E,  E,  O,   O},
-    [l_pot] =      {O,  O,  O,  O,  E,  O,   O},
-    [l_op_parent] ={Er, E,  E,  E,  E,  D,   Er},
-    [l_igual] =    {O,  E,  E,  E,  E,  O,   O},
+    [l_soma_sub] = {O,  O,  E,  E,  E,  O,   E},
+    [l_mul_div] =  {O,  O,  O,  E,  E,  O,   E},
+    [l_pot] =      {O,  O,  O,  O,  E,  O,   E},
+    [l_op_parent] ={Er, E,  E,  E,  E,  D,   E},
+    [l_igual] =    {O,  E,  E,  E,  E,  O,   E},
 };
 
-static void opera(Lista oper, Lista num)
+static void operacao_igual(Dicionário dic, Lista num, Str v_token, Str n_token)
 {
-    double numero;
+    Str valor_Str = s_cria("");
+    unichar d = s_ch(v_token, 0);
+    if(dig_pont(d)){
+        s_copia(valor_Str, v_token);
+    } else {
+        valor_t v = dic_busca(dic, v_token);
+        if (v == VALOR_NÃO_EXISTE) {
+            printf("Variavel indefinida\n");
+            exit(1);
+        }
+        s_copia(valor_Str, (Str)v); 
+        s_destroi(v_token);
+    }
+
+    unichar e = s_ch(n_token, 0);
+    if (dig_pont(e)){
+        printf("Tem que ser '='\n");
+        exit(1);
+    }
+
+    Str copia_para_dic = s_cria("");
+    s_copia(copia_para_dic, valor_Str);
+
+    valor_t antigo = dic_insere(dic, n_token, copia_para_dic);
+    if (antigo != VALOR_NÃO_EXISTE) {
+        s_destroi((Str)antigo);
+        s_destroi(n_token);
+    }
+
+    l_empilha(num, valor_Str);
+}
+
+static void opera(Lista oper, Lista num, Dicionário dic)
+{
     Str a  = l_desempilha(num); // operando da direita (topo)
     Str b = l_desempilha(num); // operando da esquerda
     Str operador = l_desempilha(oper);
     char c = s_ch(operador, 0);
 
+    if (c == '='){
+        operacao_igual(dic, num, a, b);
+        s_destroi(operador);
+        return;
+    }
+
+    double a1 = Valor_numero(a, dic);
+    double b1 = Valor_numero(b, dic);
+    printf("a1 = %lf\n", a1);
+    printf("b1 = %lf\n", b1);
+    double resultado;
+
     switch (c) {
         case '+':
-            numero = soma(b, a);
+            resultado = a1 + b1;
             break;
         case '-':
-            numero = subtracao(b, a);
+            resultado = b1 - a1;
             break;
         case '*':
-            numero = multiplicacao(b, a);
+            resultado =  b1 * a1;
             break;
         case '/':
-            numero = divisao(b, a);
+            resultado = b1 /a1;
             break;
         case '^':
-            numero = potencia(b, a);
+            resultado = pow(b1, a1);
             break;
         default:
             printf("Operador desconhecido: %c\n", c);
@@ -103,10 +158,11 @@ static void opera(Lista oper, Lista num)
     s_destroi(b);
     s_destroi(operador);
 
-    l_empilha(num, s_cria_número(numero));
+    l_empilha(num, s_cria_número(resultado));
 }
 
-static void acaotomada(acao a, Lista oper, Lista num, Str dado_atual)
+
+static void acaotomada(acao a, Lista oper, Lista num, Str dado_atual, Dicionário dic)
 {
     switch (a) {
         case E: 
@@ -114,7 +170,7 @@ static void acaotomada(acao a, Lista oper, Lista num, Str dado_atual)
             break;
 
         case O: 
-            opera(oper, num);
+            opera(oper, num, dic);
             break;
 
         case Er:
@@ -176,7 +232,7 @@ op_atual classifica_op_atual(char c)
     }
 }
 
-Str calculadora(Str expressão)
+Str calculadora(Str expressão, Dicionário dic)
 {
     Lista pilha_de_operadores = l_cria();
     Lista pilha_de_operandos = l_cria();
@@ -215,7 +271,7 @@ Str calculadora(Str expressão)
             continue;
         }
 
-        acaotomada(oqFazer, pilha_de_operadores, pilha_de_operandos, token_atual);
+        acaotomada(oqFazer, pilha_de_operadores, pilha_de_operandos, token_atual, dic);
 
         precisa_novo_token = (oqFazer == E || oqFazer == D);
     }
@@ -263,3 +319,23 @@ Lista tokeniza(Str txt)
 
     return texto;
 }
+
+double Valor_numero(Str l, Dicionário dic) 
+{
+    unichar d =  s_ch(l, 0);
+
+    if (dig_pont(d)) {
+        s_imprime(l);
+        printf("a1 = %lf\n", s_número(l));
+        return s_número(l);
+    }
+
+    valor_t n = dic_busca(dic, l);
+    if (n == VALOR_NÃO_EXISTE) {
+        printf("Variavel indefinida\n");
+        exit(1);
+    }
+
+    return s_número((Str)n);
+}
+
