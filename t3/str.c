@@ -132,10 +132,14 @@ static long long calcpotdez(int i)
 // Aloca, inicializa e retorna uma nova string, contendo a representação decimal de num
 Str s_cria_número(double num)
 {
+  //essas duas linhas para correção do erro de arredondamento
+  double arredonda = 0.0000005;     // metade da menor casa (6 casas decimais)
+  num += (num >= 0) ? arredonda : -arredonda;
+
   long parteInteira = (long)num;
   double parteDecimal = num - parteInteira;
-  int tam = tamDouble(parteInteira, parteDecimal); // ja inclui o '.'
-  char numero[tam+1]; //+1 pois add '\0'
+  int tam = tamDouble(parteInteira, parteDecimal); //inclui o '.'
+  char numero[tam+1]; 
 
   int tamint = tam-7;
   int i;

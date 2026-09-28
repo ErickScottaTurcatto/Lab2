@@ -98,7 +98,7 @@ static void operacao_igual(Dicionário dic, Lista num, Str v_token, Str n_token)
 
     unichar e = s_ch(n_token, 0);
     if (dig_pont(e)){
-        printf("Tem que ser '='\n");
+        printf("Erro\n");
         exit(1);
     }
 
@@ -129,8 +129,8 @@ static void opera(Lista oper, Lista num, Dicionário dic)
 
     double a1 = Valor_numero(a, dic);
     double b1 = Valor_numero(b, dic);
-    printf("a1 = %lf\n", a1);
-    printf("b1 = %lf\n", b1);
+    //printf("a1 = %lf\n", a1);
+    //printf("b1 = %lf\n", b1);
     double resultado;
 
     switch (c) {
@@ -324,9 +324,8 @@ double Valor_numero(Str l, Dicionário dic)
 {
     unichar d =  s_ch(l, 0);
 
-    if (dig_pont(d)) {
-        s_imprime(l);
-        printf("a1 = %lf\n", s_número(l));
+    if (dig_pont(d)){
+
         return s_número(l);
     }
 
