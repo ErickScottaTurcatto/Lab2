@@ -3,7 +3,6 @@
 #include "lista.h"
 #include "calc.h"
 #include <stdbool.h>
-#include "operacoes.h"
 #include <stdlib.h>
 #include "dicionario.h"
 #include <math.h>
@@ -129,8 +128,6 @@ static void opera(Lista oper, Lista num, Dicionário dic)
 
     double a1 = Valor_numero(a, dic);
     double b1 = Valor_numero(b, dic);
-    //printf("a1 = %lf\n", a1);
-    //printf("b1 = %lf\n", b1);
     double resultado;
 
     switch (c) {
