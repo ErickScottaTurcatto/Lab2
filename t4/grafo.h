@@ -3,6 +3,33 @@
 
 typedef struct grafo *Grafo;
 
+struct aresta{
+    int destino;
+    void *peso;
+    struct aresta *prox;
+};
+typedef struct aresta Aresta;
+
+struct vertice{
+    void *peso;
+    Aresta *arestas;
+};
+typedef struct vertice Vertice;
+
+struct grafo{
+    int n_vertices;
+    int tam_aresta;
+    int tam_vertice;
+    int tam_alocado_vet;
+    Vertice **vet_vertices;
+
+    //para proximas funções
+    bool consulta_chegam; // false = partem, true = chegam  
+    int  consulta_no;  //origem     
+    int  consulta_v;   //destino   vertice consultando  
+    Aresta *consulta_a; 
+};
+
 #include "fila.h"
 #include <stdbool.h>
 

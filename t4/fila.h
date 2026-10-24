@@ -37,7 +37,6 @@ void f_insere(Fila self, void *pdado);
 //   -2 é a posição do penúltimo dado, etc
 // cada dado do percurso será acessado por chamadas a f_próximo()
 void f_inicia_percurso(Fila self, int pos_inicial);
-//perguntar: se a o valor da posição não existir, o que deve acontecer?
 
 // caso o percurso tenha terminado, retorna false
 // senão, coloca o próximo dado do percurso em *pdado (se pdado não for NULL),
