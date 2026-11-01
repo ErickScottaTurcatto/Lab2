@@ -17,7 +17,8 @@ struct vertice{
 typedef struct vertice Vertice;
 
 struct grafo{
-    int n_vertices;
+    int vertices_ativos; //vertices ativos
+    int n_vertices; //total
     int tam_aresta;
     int tam_vertice;
     int tam_alocado_vet;

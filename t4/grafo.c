@@ -20,6 +20,7 @@ Grafo g_cria(int tam_nó, int tam_aresta)
     }
 
     g->n_vertices = 0;
+    g->vertices_ativos = 0;
     g->tam_aresta = tam_aresta;
     g->tam_vertice = tam_nó;
     g->consulta_chegam = false;
@@ -43,6 +44,8 @@ void g_destrói(Grafo self)
 
     Aresta *a;
     for(int i = 0; i < self->n_vertices; i++) {
+        if (self->vet_vertices[i] == NULL) continue;
+
         a = self->vet_vertices[i]->arestas;
         while(a != NULL) {
             Aresta *p = a->prox;
@@ -100,13 +103,55 @@ int g_insere_nó(Grafo self, void *p_dado)
 
     self->vet_vertices[n_no] = v;
     self->n_vertices++;
+    self->vertices_ativos++;
 
     return n_no;
 }
 
 void g_remove_nó(Grafo self, int nó)
 {
-    //fazer
+    if (self == NULL) {
+        printf("O grafo não existe\n");
+        exit(1);
+    }
+
+    if (nó < 0 || nó >= self->n_vertices || self->vet_vertices[nó] == NULL) {
+        printf("O nó não existe\n");
+        exit(1);
+    }
+
+    Aresta *lista = self->vet_vertices[nó]->arestas;
+    Aresta *prox;
+
+    while(lista != NULL) {
+        prox = lista->prox;
+        free(lista->peso);
+        free(lista);
+        lista = prox;
+    }
+
+    free(self->vet_vertices[nó]->peso);
+    free(self->vet_vertices[nó]);
+    self->vet_vertices[nó] = NULL;
+    self->vertices_ativos--;
+
+    //não vai dar para fazer n_vertices-- pois uso esse valor para iterar no vet
+    int i = 0;
+    while(i < self->n_vertices) {
+        if (i == nó) {
+            i++;
+            continue;
+        }
+       
+        if (self->vet_vertices[i] != NULL) {
+            Aresta *l = self->vet_vertices[i]->arestas;
+
+            l = remove_aresta(l, nó);
+            self->vet_vertices[i]->arestas = l;
+        }
+        
+        i++;
+    }
 }
 
 void g_altera_valor_do_nó(Grafo self, int nó, void *p_dado)
@@ -116,7 +161,7 @@ void g_altera_valor_do_nó(Grafo self, int nó, void *p_dado)
         exit(1);
     }
 
-    if (nó >= self->n_vertices){
+    if (nó < 0 || nó >= self->n_vertices || self->vet_vertices[nó] == NULL){
         printf("O nó não existe\n");
         exit(1);
     }
@@ -131,7 +176,7 @@ void *g_valor_do_nó(Grafo self, int nó)
         exit(1);
     }
 
-    if (nó >= self->n_vertices){
+    if (nó < 0 || nó >= self->n_vertices || self->vet_vertices[nó] == NULL){
         printf("O nó não existe\n");
         exit(1);
     }
@@ -141,7 +186,7 @@ void *g_valor_do_nó(Grafo self, int nó)
 
 int g_num_nós(Grafo self)
 {
-    return self->n_vertices;
+    return self->vertices_ativos;
 }
 
 
@@ -203,6 +248,12 @@ static Aresta *acha_aresta(Grafo self, int origem, int destino){
         destino < 0 || destino >= self->n_vertices) {
         return NULL;
     }
+
+    if (self->vet_vertices[origem] == NULL ||
+        self->vet_vertices[destino] == NULL) {
+        return NULL;
+    }
+
     Aresta *aux = self->vet_vertices[origem]->arestas;
 
     while(aux != NULL) {
@@ -226,6 +277,11 @@ void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino,
     }
 
     if(nó_origem >= self->n_vertices || nó_destino >= self->n_vertices){
+        printf("O nó não existe\n");
+        exit(1);
+    }
+
+    if (self->vet_vertices[nó_origem] == NULL || self->vet_vertices[nó_destino] == NULL){
         printf("O nó não existe\n");
         exit(1);
     }
@@ -268,7 +324,7 @@ void g_arestas_que_partem(Grafo self, int nó_origem)
         exit(1);
     }
 
-    if (nó_origem < 0 || nó_origem >= self->n_vertices) {
+    if (nó_origem < 0 || nó_origem >= self->n_vertices || self->vet_vertices[nó_origem] == NULL) {
         printf("O no não existe\n");
         exit(1);
     }
@@ -285,7 +341,7 @@ void g_arestas_que_chegam(Grafo self, int nó_destino)
         exit(1);
     }
 
-    if (nó_destino < 0 || nó_destino >= self->n_vertices) {
+    if (nó_destino < 0 || nó_destino >= self->n_vertices || self->vet_vertices[nó_destino] == NULL) {
         printf("O no não existe\n");
         exit(1);
     }
