@@ -6,6 +6,10 @@
 #define N 4
 #define ALOCADO (sizeof(Vertice *) * N)
 
+static Aresta *insere_aresta(Aresta *a, void *v, int dest, int tam);
+static Aresta *remove_aresta(Aresta *a, int dest);
+static Aresta *acha_aresta(Grafo self, int origem, int destino);
+
 static void Erro_alocacao(void)
 {
     printf("Erro de alocação\n");
@@ -291,11 +295,10 @@ void g_altera_valor_da_aresta(Grafo self, int nó_origem, int nó_destino,
     Aresta *aux = acha_aresta(self,nó_origem, nó_destino);
 
     if (p_dado != NULL) {
-        if (aux != NULL) { //encontrou
-            lista = insere_aresta(lista, p_dado, nó_destino, self->tam_aresta);
-            self->vet_vertices[nó_origem]->arestas = lista;
-        } else {
+        if (aux != NULL) {
             memcpy(aux->peso, p_dado, self->tam_aresta);
+        } else {
+            self->vet_vertices[nó_origem]->arestas = insere_aresta(lista, p_dado, nó_destino, self->tam_aresta);
         }
     } else {
         self->vet_vertices[nó_origem]->arestas = remove_aresta(lista, nó_destino);
@@ -395,3 +398,77 @@ void *g_próxima_aresta(Grafo self, int *p_nó_vizinho)
 
     return retorno;
 }   
+
+//algoritmos
+
+
+typedef enum { NAO_VISITADO, EM_VISITA, JA_VISITADO } marca_t;
+
+static bool dfs_ciclo(Grafo g, int u, marca_t *cor) {
+    cor[u] = EM_VISITA;
+    for (Aresta *a = g->vet_vertices[u]->arestas; a; a = a->prox) {
+        int w = a->destino;
+        if (cor[w] == EM_VISITA) return true;                 // aresta de volta: ciclo
+        if (cor[w] == NAO_VISITADO && dfs_ciclo(g, w, cor)) return true;
+    }
+    cor[u] = JA_VISITADO;
+    return false;
+}
+
+bool g_tem_ciclo(Grafo g) {
+    int n = g->n_vertices;                                 
+    marca_t *cor = calloc(n, sizeof(marca_t));                
+    bool achou = false;
+    for (int i = 0; i < n && !achou; i++) {
+        if (g->vet_vertices[i] == NULL) continue;
+        if (cor[i] == NAO_VISITADO) achou = dfs_ciclo(g, i, cor);
+    }
+    free(cor);
+    return achou;
+}
+
+Fila g_ordem_topológica(Grafo self)
+{
+    int n = self->n_vertices;
+
+    int *grau = calloc(n, sizeof(int));
+    if (grau == NULL) Erro_alocacao();
+
+    for (int u = 0; u < n; u++) {
+        if (self->vet_vertices[u] == NULL) continue;
+        for (Aresta *a = self->vet_vertices[u]->arestas; a; a = a->prox)
+            grau[a->destino]++;
+    }
+
+    Fila prontos = f_cria(sizeof(int));
+    for (int u = 0; u < n; u++) {
+        if (self->vet_vertices[u] == NULL) continue;
+        if (grau[u] == 0) f_insere(prontos, &u);
+    }
+
+    Fila ordem = f_cria(sizeof(int));
+    int colocados = 0;
+
+    while (!f_tá_vazia(prontos)) {
+        int u;
+        f_remove(prontos, &u);
+        f_insere(ordem, &u);
+        colocados++;
+
+        for (Aresta *a = self->vet_vertices[u]->arestas; a; a = a->prox) {
+            int w = a->destino;
+            grau[w]--;
+            if (grau[w] == 0) f_insere(prontos, &w);
+        }
+    }
+
+    free(grau);
+    f_destrói(prontos);
+
+    if (colocados != self->vertices_ativos) {
+        f_destrói(ordem);
+        return f_cria(sizeof(int));
+    }
+
+    return ordem;
+}
