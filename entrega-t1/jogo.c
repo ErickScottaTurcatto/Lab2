@@ -294,6 +294,7 @@ void atualiza_mapa (char *mapa, Dados_jogo *dadosjogo, int n)
                 dadosjogo->fim_onda = true;
                 dadosjogo->fim_partida = true;
                 dadosjogo->gameover = true;
+                break;
             } else if(mapa[i-1] == ')') {
                 mapa[i-1] = (mapa[i] == 'N') ? 'n' : ' ';
                 if (mapa[i] != 'N')
@@ -337,12 +338,12 @@ void desenha_jogo(char *mapa, Dados_jogo *dadosjogo, int n)
 //som dos inimigos spawnando
 void som_de_spawn(char *mapa, int i)
 {
-    char comando[50];
+    char comando[80];
     if (mapa[i] != ' ' && mapa[i] != ')') {
         if (mapa[i] == 'n' || mapa[i] == 'N') 
-            system("aplay -q Sons/11.3.wav &");
+            system("timeout -s KILL 3 aplay -q Sons/11.3.wav &");
         else {
-            sprintf(comando, "aplay -q Sons/%c.3.wav &", mapa[i]);
+            sprintf(comando, "timeout -s KILL 3 aplay -q Sons/%c.3.wav &", mapa[i]);
             system(comando);
         }
     }
@@ -373,13 +374,13 @@ void troca_arma(Dados_jogo *dadosjogo, int tecla)
 //som da troca de armas
 void som_trocaarma(Dados_jogo *dadosjogo)
 {
-    char comando[50];
+    char comando[80];
     if (dadosjogo->arma_atual == 10) {
-        system("aplay -q Sons/11.3.wav &");
+        system("timeout -s KILL 3 aplay -q Sons/11.3.wav &");
     }
     else {
         char pdc = dadosjogo->arma_atual + '0';
-        sprintf(comando, "aplay -q Sons/%c.3.wav &", pdc);
+        sprintf(comando, "timeout -s KILL 3 aplay -q Sons/%c.3.wav &", pdc);
         system(comando);
     }
 }
@@ -387,22 +388,33 @@ void som_trocaarma(Dados_jogo *dadosjogo)
 //atira
 void atira(Dados_jogo *dadosjogo, char *mapa, int tecla, int n) 
 {
+    bool matou = false;
     if (tecla == 13 && dadosjogo->municao > 0) {
         for(int i = 0; i < n; i++) {
             int at = dadosjogo->arma_atual;
             if ((mapa[i] == 'N' || mapa[i] == 'n') && at == 10) {
+                matou = true;
                 mapa[i] = (mapa[i] == 'N') ? 'n' : ' ';
+                system("timeout -s KILL 3 aplay -q Sons/11.3.wav &");
                 if (mapa[i] == ' ') {
                     pontuacao_mortes(dadosjogo, i, true);
                     dadosjogo->inimigos_vivos--;   
                 }
                 break;
             } else if (mapa[i] == dadosjogo->arma_atual + '0') {
+                matou = true;
                 mapa[i] = ' ';
+                char comando[80];
+                char pdc = dadosjogo->arma_atual + '0';
+                sprintf(comando, "timeout -s KILL 3 aplay -q Sons/%c.3.wav &", pdc);
+                system(comando);
                 pontuacao_mortes(dadosjogo, i, false);
                 dadosjogo->inimigos_vivos--;
                 break;
             }
+        }
+        if (matou == false) {
+            //system("timeout -s KILL 3 aplay -q Sons/x.3.wav &");
         }
         dadosjogo->municao--;
     }
@@ -483,6 +495,7 @@ void sorteio(Dados_jogo *dadosjogo, int chance_dia)
 //gera a tela apos o fim da onda e define o que acontece depois
 void proxima_onda(Dados_jogo *dadosjogo)
 {
+    //system("timeout -s KILL 6 aplay -q Sons/8.2.wav Sons/9.2.wav Sons/10.2.wav Sons/10.2.wav &");
     bool exit = false;
     printf("Onda: %d Pontuacao: %d", dadosjogo->onda,dadosjogo->pontuacao);
     printf("\n");
@@ -506,10 +519,10 @@ void radar(char *mapa, int tecla, int n)
         sleep(1);
         for (int i = 0; i < n; i++) {
             if (mapa[i] == ' ') {
-                system("aplay -q Sons/x.3.wav");
+                system("timeout -s KILL 3 aplay -q Sons/x.3.wav");
             }
             else if (mapa[i] == ')') {
-                system("aplay -q Sons/12.3.wav");
+                system("timeout -s KILL 3 aplay -q Sons/12.3.wav");
             }
             else {
                 som_de_spawn(mapa, i);
@@ -524,9 +537,8 @@ void radar(char *mapa, int tecla, int n)
 void som_fim_onda(Dados_jogo *dadosjogo) 
 {
     if (dadosjogo->fim_onda) {
-        char comando[100] = "aplay -q Sons/6.2.wav Sons/7.2.wav ";
-        strcat(comando, "Sons/8.2.wav Sons/9.2.wav Sons/9.2.wav");
-        system(comando);
+        system("( sleep 0.5; for f in 6.2 7.2 8.2 9.2 9.2; do "
+               "timeout -s KILL 3 aplay -q Sons/$f.wav; done ) &");
         struct timespec espera = {1, 500000000};
         nanosleep(&espera, NULL);
     }

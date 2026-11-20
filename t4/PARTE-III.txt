@@ -1,0 +1,16 @@
+No arquivo individuo.c na parte de inovações, há um vetor inovações, que armazena structs, ele já é inicializado com 10000 espaços. Poderia ser
+otimizado usando um vetor dinâmico, em que alocaria mais memoria a medida que precisa-se, assim fazendo uma boa economia na memória. 
+Há também uma função que faz uma busca linear no vetor, para um vetor não tão grande como esse, a implementação de vetor dinâmico ainda assim
+é boa, porém, se fosse grande, talvez faria sentido usar uma tabela hash, já que estamos comparando dois neuronios (a origem e o destino)
+para encontrar um neuronio intermediário, então teriamos 2 chaves, para encontrar o valor. Também é útil a tabela hash porque a princípio,
+não se repete as chaves, o que poderia acontecer é ter a chave ao contrario(A,B e B,A) mas isso pode ser facilmente resolvido.
+
+
+No arquivo especies.c na struct espécie, há um vetor de individuos que já é inicializado com o tamanho maximo 500, sabendo que as funções
+que utilizam dele, fazem busca, inserção, ordenação e que a função espécie_calcula_sobreviventes precisa da ordenação do vetor para definir 
+a quantidade de sobreviventes, então a melhor estrutura seria um vetor dinâmico para alocar somente a quantidade necessaria de memoria.
+
+
+No arquivo geracao.c, na struct geração, há dois vetores, individuos e espécies, eles são inicializados como o tamanho máximo, analizando também a quantidade 
+de operações realizadas nos vetores, a melhor estrutura seria um vetor dinâmico para cada um deles, o que melhoraria o uso da memória e 
+performaria bem com base nas operações 
