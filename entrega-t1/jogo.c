@@ -156,6 +156,10 @@ void joga_partida (Dados_jogo *dadosjogo)
         if (dadosjogo->estados == noite) {
             dadosjogo->tempo_noturno = 3 * dadosjogo->tempo;
         }
+        /* debbug
+        char *est = (dadosjogo->estados == 0) ? "dia" : "noite";
+        double t = (dadosjogo->estados == 0) ? dadosjogo->tempo : dadosjogo->tempo_noturno;
+        printf("%s %f\n", est, t);*/
         joga_onda(dadosjogo);
         if (dadosjogo->saida_esc == false && dadosjogo->gameover == false)
             proxima_onda(dadosjogo);
@@ -414,7 +418,7 @@ void atira(Dados_jogo *dadosjogo, char *mapa, int tecla, int n)
             }
         }
         if (matou == false) {
-            //system("timeout -s KILL 3 aplay -q Sons/x.3.wav &");
+            system("timeout -s KILL 3 aplay -q Sons/x.3.wav &");
         }
         dadosjogo->municao--;
     }
