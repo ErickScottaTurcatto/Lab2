@@ -157,6 +157,7 @@ Str s_cria_de_arquivo(char *nome)
       temp[i] = (byte) car;
       i++;
   }
+  fclose(arquivo); //faltou
 
   s->dados = temp;
   s->tam_bytes = i;
@@ -450,6 +451,13 @@ int s_busca_s(Str_c s, int pos, Str_c buscada)
 
 void s_substitui(Str s, int pos, int tam, Str_c sb)
 {
+  if (s == sb){
+    Str copia = s_cria_cópia(sb);
+    s_substitui(s, pos, tam, copia);
+    s_destroi(copia);
+    return;
+  }
+
   s_ok(s);
   if (sb != NULL) s_ok(sb);
 
@@ -609,20 +617,21 @@ void s_substring(Str s, Str_c sb, int pos, int tam)
   int bytefim = byte_inicio + qtdbyte;
   //int bytesadeslocar = sb->tam_bytes - qtdbyte;
 
-  free(s->dados);
   int new_capacidade = capacidade(qtdbyte);
   
-  byte *d;
-  d = malloc(new_capacidade);
-  if (d == NULL) {
-    exit(1);
+  byte *d = NULL;
+  if (new_capacidade > 0) {
+    d = malloc(new_capacidade);
+    if (d == NULL) {
+      exit(1);
+    }
+    for (int i = 0; i < qtdbyte; i++) {
+      d[i] = sb->dados[byte_inicio+i];
+    }
   }
+  
+  free(s->dados);
   s->dados = d;
-
-  for (int i = 0; i < qtdbyte; i++) {
-    s->dados[i] = sb->dados[byte_inicio+i];
-  }
-
   s->tam_bytes = qtdbyte;
   s->tam_caracteres = fim-inicio+1; 
   s->tam_bytes_alocados = new_capacidade;
