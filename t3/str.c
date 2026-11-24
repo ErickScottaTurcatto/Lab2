@@ -132,9 +132,10 @@ static long long calcpotdez(int i)
 // Aloca, inicializa e retorna uma nova string, contendo a representação decimal de num
 Str s_cria_número(double num)
 {
-  //essas duas linhas para correção do erro de arredondamento
-  double arredonda = 0.0000005;     // metade da menor casa (6 casas decimais)
-  num += (num >= 0) ? arredonda : -arredonda;
+  bool negativo = num <= -0.0000005;
+  if (num < 0) num = -num;
+
+  num += 0.0000005;   // correção de arredondamento 
 
   long parteInteira = (long)num;
   double parteDecimal = num - parteInteira;
@@ -144,7 +145,7 @@ Str s_cria_número(double num)
   int tamint = tam-7;
   int i;
   for(i = 0; i < tamint; i++){
-    int pot = calcpotdez(tamint-i-1);
+    long long pot = calcpotdez(tamint-i-1);
     int quocinte = parteInteira/pot;
     parteInteira = parteInteira%pot;
     numero[i] = quocinte+'0';
@@ -153,16 +154,16 @@ Str s_cria_número(double num)
   i++;
  
   for(int j = i; j < tam; j++) {
-    int partint = (int)10*parteDecimal;
     parteDecimal = 10*parteDecimal;
-    numero[j] = partint + '0';
-    parteDecimal = parteDecimal-partint;
-
-    if(j == tam-1)
-      numero[j+1] = '\0';
+    int dig = (int)parteDecimal;
+    numero[j] = dig + '0';
+    parteDecimal = parteDecimal-dig;
   }
-  
-  return s_cria(numero);
+  numero[tam] = '\0';
+
+  Str s = s_cria(numero);
+  if (negativo) s_insere_c(s, 0, '-');
+  return s;
 }
 
 
@@ -282,13 +283,21 @@ static double calcpotdeci(int j)
 double s_número(Str_c s)
 {
   if(s == NULL) exit(1);
+
+  int ini = 0;
+  bool negativo = false;
+  if (s->tam_bytes > 0 && s->dados[0] == '-') {
+    negativo = true;
+    ini = 1;
+  }
+
   double res = 0;
   int numdecimais = 0;
   int tam = s_tam(s);
   int numeros[tam];
   bool contar = false;
 
-  for(int i = 0, j = 0; i < tam; i++){
+  for(int i = ini, j = 0; i < tam; i++){
     if(contar) numdecimais++;
     if (s->dados[i]  ==  '.') {
       contar = true;
@@ -299,17 +308,18 @@ double s_número(Str_c s)
     j++;
   }
 
-  int parinteira = contar ? (tam - 1 - numdecimais) : tam;
+  int ntam = tam - ini;
+  int parinteira = contar ? (ntam - 1 - numdecimais) : ntam;
 
   for(int i = 0; i < parinteira; i++) {
-    res += (double)(numeros[i]*calcpotdez(parinteira-1-i));
+    res += (numeros[i]*(double)calcpotdez(parinteira-1-i));
   }
 
   for (int i = 0; i < numdecimais; i++) {
     res += numeros[parinteira + i]*calcpotdeci(i+1);
   }
 
-  return res;
+  return negativo ? -res : res;
 }
 
 
