@@ -199,5 +199,9 @@ int main()
   s_destroi(sa_sobras);
   s_destroi(narq);
 
+  printf("\n\n");
+  Str sq = s_cria("Olá");
+  printf("%d %d %d\n", s_ch(sq, 0), s_ch(sq, 1), s_ch(sq, 2));
+
   return 0;
 }
