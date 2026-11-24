@@ -1,0 +1,27 @@
+Eu acho que eu mereço uma nota 8.5, pois fiz todos os trabalhos e me dediquei neles, apesar de ter alguns bugs, a maior parte 
+dos trabalhos funciona corretamente e a princípio todos os bugs já foram corrigidos. Além disso, aprendi e entendi o conteúdo
+desse semestre e por isso me considero apto a ser aprovado nesta desciplina;
+
+Problemas so T1:
+vc escreveu isso: não faz som no tiro; mostra arma de noite
+Eu não achei esses problemas, talvez no github tenha ficado uma versão atiga do jogo, pois a versão definitiva eu havia enviado
+na manhã em que o github caiu, então talvez não tenha ido.
+Mas eu encontrei um problema de que quando o tiro não matava ninguém ele não fazia o som de não ter acertado, havia esquecido de implementar
+isso;
+
+Problemas no T2:
+vc escreveu isso: vazamento ao não fechar o ficheiro antes do return (requisito); erro de aliasing nas funções de alteração e 
+cópia (requisito); buscas lentas por chamadas repetitivas em laços (sugestão de performance)
+Os erros estavam nessas funções:
+faltou um fclose() na função s_cria_de_arquivo(char *nome);
+Erros de alissing nas funções de s_substitui e s_substring
+Sobre a performace, realmente tem muitas chamadas em algumas funções e eu poderia ter feito melhor isso, mas acabei por não otimizar
+
+Problemas T3:
+vc escreveu isso: 2^3^2=64 [5]; 2-3-4 trava [4]; exit(1) em vez de #ERRO [7]; não checa l_tam != 1 no fim
+correções:
+alteração na tabela de ações, linha e coluna de potencias foi trocado o opera por emplilha, o que resolve o bug do 2^3^2 = 64
+alterei tbm as funções que convertiam Str para numero e numero para Str, elas bugavam por conta do carctere de subtração(-), já que ele não
+faz parte do numero;
+mudei algumas coisas no codigo de calc.c para dar suporte a erros, eu estava tratando somente com printf("msg de erro); e exit(1);
+l_tam != 1 isso tbm foi resolvido
